@@ -1,0 +1,52 @@
+{
+  "name": "mcp-google-ads-gcloud-auth",
+  "version": "0.1.0",
+  "description": "Model Context Protocol (MCP) server for Google Ads with GCloud/ADC auth in TypeScript",
+  "private": false,
+  "type": "module",
+  "main": "dist/cli.js",
+  "bin": {
+    "mcp-google-ads-gcloud-auth": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc -p .",
+    "clean": "rimraf dist || rm -rf dist",
+    "dev": "tsx src/cli.ts",
+    "start": "node dist/cli.js",
+    "typecheck": "tsc --noEmit -p .",
+    "test": "vitest run --reporter=dot",
+    "test:watch": "vitest",
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --fix",
+    "smoke": "tsx scripts/smoke.ts"
+  },
+  "keywords": [
+    "mcp",
+    "modelcontextprotocol",
+    "google-ads",
+    "gcloud",
+    "adc",
+    "typescript"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.17.5",
+    "google-auth-library": "^9.14.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint": "^8.57.0",
+    "dotenv": "^16.4.5",
+    "rimraf": "^5.0.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0"
+  },
+  "engines": {
+    "node": ">=18.17.0"
+  },
+  "packageManager": "pnpm@10.15.1"
+}
