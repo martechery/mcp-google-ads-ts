@@ -5,9 +5,9 @@ import { registerTools } from "./server-tools.js";
 export async function startServer() {
   let McpServer: any;
   try {
-    ({ McpServer } = await import("@modelcontextprotocol/sdk/server/mcp" as any));
+    ({ McpServer } = await import("@modelcontextprotocol/sdk/server/mcp.js" as any));
   } catch {
-    ({ McpServer } = await import("@modelcontextprotocol/sdk/dist/esm/server/mcp.js" as any));
+    ({ McpServer } = await import("@modelcontextprotocol/sdk/server/mcp" as any));
   }
   const server: BaseServer = new McpServer({ name: "mcp-google-ads-gcloud-auth", version: "0.1.0" });
   registerTools(server as any);
