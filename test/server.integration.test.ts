@@ -54,9 +54,9 @@ describe('server tools integration', () => {
     registerTools(server as any);
     const res = await server.tools['list_accounts']({});
     const text = res.content[0].text as string;
-    expect(text).toContain('Accessible Google Ads Accounts:');
-    expect(text).toContain('Account ID: 1234567890');
-    expect(text).toContain('Account ID: 0000012345');
+    expect(text).toContain('Accounts:');
+    expect(text).toContain('1234567890');
+    expect(text).toContain('0000012345');
   });
 
   it('get_performance passes filters and formats', async () => {

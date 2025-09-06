@@ -1,7 +1,6 @@
 import { Server } from '@modelcontextprotocol/sdk/server';
 import { executeGaql } from './tools/gaql.js';
 import { listAccessibleCustomers } from './tools/accounts.js';
-import { formatCustomerId } from './utils/formatCustomerId.js';
 import { buildPerformanceQuery } from './tools/performance.js';
 import { tabulate } from './utils/formatTable.js';
 import { searchGoogleAdsFields } from './tools/fields.js';
@@ -219,24 +218,20 @@ export function registerTools(server: Server) {
   server.tool(
     {
       name: "list_accounts",
-      description: "List accessible Google Ads accounts (customers:listAccessibleCustomers)",
+      description: "List accessible Google Ads accounts (alias of list_resources kind=accounts)",
       input_schema: { type: "object", additionalProperties: false, properties: {} },
     },
     async () => {
+      const handler = (server as any).tools?.list_resources as ((input: any) => Promise<any>) | undefined;
+      if (handler) return handler({ kind: 'accounts' });
       const res = await listAccessibleCustomers();
       if (!res.ok) {
         return { content: [{ type: "text", text: `Error: ${res.errorText || `status ${res.status}`}` }] };
       }
       const names = res.data?.resourceNames || [];
-      if (!names.length) {
-        return { content: [{ type: "text", text: "No accessible accounts found." }] };
-      }
-      const lines: string[] = ["Accessible Google Ads Accounts:", "-".repeat(50)];
-      for (const rn of names) {
-        const id = rn.split('/').pop() || rn;
-        lines.push(`Account ID: ${formatCustomerId(id)}`);
-      }
-      return { content: [{ type: "text", text: lines.join("\n") }] };
+      const rows = names.map((rn: string) => ({ account_id: (rn.split('/').pop() || rn) }));
+      const table = tabulate(rows, ['account_id']);
+      return { content: [{ type: "text", text: `Accounts:\n${table}` }] };
     }
   );
 
@@ -337,15 +332,16 @@ export function registerTools(server: Server) {
     }
   );
 
-  // List GAQL FROM resources (via google_ads_field metadata)
+  // List GAQL FROM resources (via google_ads_field metadata) or accounts
   server.tool(
     {
       name: "list_resources",
-      description: "List GAQL FROM-able resources via google_ads_field (category=RESOURCE, selectable=true). output_format=table|json|csv.",
+      description: "List GAQL FROM-able resources via google_ads_field (category=RESOURCE, selectable=true) or list accounts. output_format=table|json|csv.",
       input_schema: {
         type: "object",
         additionalProperties: false,
         properties: {
+          kind: { type: "string", enum: ["resources","accounts"], description: "what to list", default: "resources" },
           filter: { type: "string", description: "optional substring filter on resource name" },
           limit: { type: "number", default: 500 },
           output_format: { type: "string", enum: ["table","json","csv"], default: "table" },
@@ -353,6 +349,28 @@ export function registerTools(server: Server) {
       },
     },
     async (input: any) => {
+      const kind = String(input?.kind || 'resources').toLowerCase();
+      if (kind === 'accounts') {
+        const res = await listAccessibleCustomers();
+        if (!res.ok) {
+          const hint = mapAdsErrorMsg(res.status, res.errorText || '');
+          const lines = [`Error listing accounts (status ${res.status}): ${res.errorText || ''}`];
+          if (hint) lines.push(`Hint: ${hint}`);
+          return { content: [{ type: 'text', text: lines.join('\n') }] };
+        }
+        const names = res.data?.resourceNames || [];
+        const rows = names.map((rn: string) => ({ account_id: (rn.split('/').pop() || rn) }));
+        const fields = ['account_id'];
+        const fmt = (input.output_format || 'table').toLowerCase();
+        if (fmt === 'json') return { content: [{ type: 'text', text: JSON.stringify(rows, null, 2) }] };
+        if (fmt === 'csv') {
+          const { toCsv } = await import('./utils/formatCsv.js');
+          const csv = toCsv(rows, fields);
+          return { content: [{ type: 'text', text: csv }] };
+        }
+        const table = tabulate(rows, fields);
+        return { content: [{ type: 'text', text: `Accounts:\n${table}` }] };
+      }
       const limit = Math.max(1, Math.min(1000, Number(input?.limit ?? 500)));
       const filter = (input?.filter || '').trim();
       const where = ["category = 'RESOURCE'", 'selectable = true'];
