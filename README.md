@@ -37,6 +37,7 @@ npm run dev
 - `GOOGLE_ADS_LOGIN_CUSTOMER_ID`: manager account (optional)
 - `GOOGLE_ADS_DEVELOPER_TOKEN`: developer token
  - `GOOGLE_ADS_ACCESS_TOKEN`: optional override (dev/tests) when not using ADC
+ - `GOOGLE_ADS_API_VERSION`: optional API version override (default `v19`). Example: `v21`
 
 Notes:
 - Prefer ADC (`adc`) over CLI fallback for stability and automatic refresh.
