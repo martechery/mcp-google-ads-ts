@@ -7,8 +7,7 @@ TypeScript implementation of a Model Context Protocol (MCP) server for Google Ad
 - Minimal server scaffolding with stdio transport.
 - Tools:
   - `manage_auth`: combines env summary + probes; actions include `status` (summarize env, probe ADC + Ads scope), `switch` and `refresh` (optional subprocess; prints exact `gcloud` commands when disabled).
-  - `list_accounts`: lists accessible Ads accounts (customers:listAccessibleCustomers).
-  - `list_resources`: GAQL FROM discovery via `google_ads_field` (category=RESOURCE).
+  - `list_resources`: GAQL FROM discovery via `google_ads_field` (category=RESOURCE) and account listing via `kind=accounts` (alias tool: `list_accounts`).
   - `execute_gaql_query`: run GAQL with pagination support.
   - `get_performance`: unified performance with filters, currency code, and cost in units.
 
