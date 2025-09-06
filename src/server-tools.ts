@@ -10,48 +10,7 @@ import { mapAdsErrorMsg } from './utils/errorMapping.js';
 import { microsToUnits } from './utils/currency.js';
 
 export function registerTools(server: Server) {
-  // Health check tool
-  server.tool(
-    {
-      name: "ping",
-      description: "Health check; returns 'pong'",
-      input_schema: { type: "object", additionalProperties: false, properties: {} },
-    },
-    async () => ({ content: [{ type: 'text', text: 'pong' }] })
-  );
-
-  // Inspect current auth env configuration
-  server.tool(
-    {
-      name: "get_auth_status",
-      description:
-        "Summarize Google Ads auth configuration based on environment variables (ADC/gcloud, oauth, service_account).",
-      input_schema: { type: "object", additionalProperties: false, properties: {} },
-    },
-    async () => {
-      const authType = process.env.GOOGLE_ADS_AUTH_TYPE || "(not set)";
-      const useCli = process.env.GOOGLE_ADS_GCLOUD_USE_CLI || "false";
-      const credsPath = process.env.GOOGLE_ADS_CREDENTIALS_PATH || "(not set)";
-      const customerId = process.env.GOOGLE_ADS_CUSTOMER_ID || "(not set)";
-      const developerToken = process.env.GOOGLE_ADS_DEVELOPER_TOKEN || "(not set)";
-      const loginCustomerId = process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID || "(not set)";
-
-      const lines = [
-        `GOOGLE_ADS_AUTH_TYPE: ${authType}`,
-        `GOOGLE_ADS_GCLOUD_USE_CLI: ${useCli}`,
-        `GOOGLE_ADS_CREDENTIALS_PATH: ${credsPath}`,
-        `GOOGLE_ADS_CUSTOMER_ID: ${customerId}`,
-        `GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${loginCustomerId}`,
-        `GOOGLE_ADS_DEVELOPER_TOKEN: ${developerToken ? "(set)" : "(not set)"}`,
-        "Notes:",
-        "- For 'gcloud/adc' mode, credentials path is not required.",
-        "- Prefer ADC over CLI fallback for stability and auto-refresh.",
-        "- oauth and service_account modes remain available for compatibility.",
-      ];
-
-      return { content: [{ type: "text", text: lines.join("\n") }] };
-    }
-  );
+  // Removed: ping and get_auth_status (status merged into manage_auth)
 
   // Manage auth tool (status implemented)
   server.tool(
@@ -74,28 +33,48 @@ export function registerTools(server: Server) {
       const allowSub = !!input?.allow_subprocess;
 
       if (action === 'status') {
+        const authType = process.env.GOOGLE_ADS_AUTH_TYPE || "(not set)";
+        const useCli = process.env.GOOGLE_ADS_GCLOUD_USE_CLI || "false";
+        const credsPath = process.env.GOOGLE_ADS_CREDENTIALS_PATH || "(not set)";
+        const customerId = process.env.GOOGLE_ADS_CUSTOMER_ID || "(not set)";
+        const developerToken = process.env.GOOGLE_ADS_DEVELOPER_TOKEN || "(not set)";
+        const loginCustomerId = process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID || "(not set)";
+
         const lines: string[] = [
           'Google Ads Auth Status',
           '=======================',
+          'Environment:',
+          `  GOOGLE_ADS_AUTH_TYPE: ${authType}`,
+          `  GOOGLE_ADS_GCLOUD_USE_CLI: ${useCli}`,
+          `  GOOGLE_ADS_CREDENTIALS_PATH: ${credsPath}`,
+          `  GOOGLE_ADS_CUSTOMER_ID: ${customerId}`,
+          `  GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${loginCustomerId}`,
+          `  GOOGLE_ADS_DEVELOPER_TOKEN: ${developerToken ? "(set)" : "(not set)"}`,
+          'Notes:',
+          "- For 'gcloud/adc' mode, credentials path is not required.",
+          '- Prefer ADC over CLI fallback for stability and auto-refresh.',
+          '- oauth and service_account modes remain available for compatibility.',
+          '',
+          'Probes:',
         ];
         try {
           const { token, quotaProjectId, type } = await (await import('./auth.js')).getAccessToken();
-          lines.push(`Auth type: ${type}`);
-          lines.push(`Token present: ${token ? 'yes' : 'no'}`);
-          lines.push(`Quota project: ${quotaProjectId || '(none)'}`);
+          lines.push(`  Auth type: ${type}`);
+          lines.push(`  Token present: ${token ? 'yes' : 'no'}`);
+          lines.push(`  Quota project: ${quotaProjectId || '(none)'}`);
           // Probe scope by hitting listAccessibleCustomers
           const resp = await listAccessibleCustomers();
           if (resp.ok) {
-            lines.push('Ads scope check: OK');
+            lines.push('  Ads scope check: OK');
             const count = resp.data?.resourceNames?.length || 0;
-            lines.push(`Accessible accounts: ${count}`);
+            lines.push(`  Accessible accounts: ${count}`);
           } else if (resp.status === 403 && (resp.errorText || '').includes('ACCESS_TOKEN_SCOPE_INSUFFICIENT')) {
-            lines.push('Ads scope check: missing scope (ACCESS_TOKEN_SCOPE_INSUFFICIENT)');
+            lines.push('  Ads scope check: missing scope (ACCESS_TOKEN_SCOPE_INSUFFICIENT)');
           } else {
-            lines.push(`Ads scope check: HTTP ${resp.status}`);
+            lines.push(`  Ads scope check: HTTP ${resp.status}`);
           }
         } catch (e: any) {
-          lines.push(`Error determining auth status: ${e?.message || String(e)}`);
+          lines.push(`  Error determining auth status: ${e?.message || String(e)}`);
         }
         return { content: [{ type: 'text', text: lines.join('\n') }] };
       }
