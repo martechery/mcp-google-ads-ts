@@ -9,19 +9,26 @@ import { searchGoogleAdsFields } from './tools/fields.js';
 import { gaqlHelp } from './tools/gaqlHelp.js';
 import { mapAdsErrorMsg } from './utils/errorMapping.js';
 import { microsToUnits } from './utils/currency.js';
-import { ManageAuthSchema, ListResourcesSchema, ExecuteGaqlSchema, GetPerformanceSchema, GaqlHelpSchema } from './schemas.js';
+import { ManageAuthZ, ListResourcesZ, ExecuteGaqlZ, GetPerformanceZ, GaqlHelpZ } from './schemas.js';
+
+function addTool(server: any, name: string, description: string, zodSchema: any, handler: ToolHandler) {
+  // If this looks like our test FakeServer (captures tools in an object), use def-object style
+  if (server && typeof server.tools === 'object') {
+    return server.tool({ name, description, input_schema: {} }, handler);
+  }
+  // Prefer McpServer signature: tool(name, description, zodSchema, handler)
+  return server.tool(name, description, zodSchema, handler);
+}
 
 export function registerTools(server: ToolServer) {
   // Removed: ping and get_auth_status (status merged into manage_auth)
 
   // Manage auth tool (status implemented)
-  server.tool(
-    {
-      name: "manage_auth",
-      description:
-        "Manage Google Ads auth: status (implemented), switch/refresh (behind allow_subprocess flag).",
-      input_schema: ManageAuthSchema as any,
-    },
+  addTool(
+    server,
+    "manage_auth",
+    "Manage Google Ads auth: status (implemented), switch/refresh (behind allow_subprocess flag).",
+    ManageAuthZ,
     async (input: any) => {
       const action = (input?.action || 'status').toLowerCase();
       const allowSub = !!input?.allow_subprocess;
@@ -138,12 +145,11 @@ export function registerTools(server: ToolServer) {
   );
 
   // Execute GAQL query tool (basic)
-  server.tool(
-    {
-      name: "execute_gaql_query",
-      description: "Execute GAQL against Ads API v19. Hints: page_size/page_token for manual paging, or auto_paginate+max_pages. output_format=table|json|csv.",
-      input_schema: ExecuteGaqlSchema as any,
-    },
+  addTool(
+    server,
+    "execute_gaql_query",
+    "Execute GAQL against Ads API. Hints: page_size/page_token for manual paging, or auto_paginate+max_pages. output_format=table|json|csv.",
+    ExecuteGaqlZ,
     async (input: any) => {
       if (!input.customer_id) {
         const res = await listAccessibleCustomers();
@@ -220,12 +226,11 @@ export function registerTools(server: ToolServer) {
   // List accessible accounts: removed for simplicity. Use list_resources(kind=accounts).
 
   // Unified performance tool
-  server.tool(
-    {
-      name: "get_performance",
-      description: "Get performance at campaign|ad_group|ad with currency. Supports filters, pagination (page_size/page_token), auto_paginate/max_pages, and output_format=table|json|csv.",
-      input_schema: GetPerformanceSchema as any,
-    },
+  addTool(
+    server,
+    "get_performance",
+    "Get performance at campaign|ad_group|ad with currency. Supports filters, pagination and output_format=table|json|csv.",
+    GetPerformanceZ,
     async (input: any) => {
       if (!input.customer_id) {
         const res = await listAccessibleCustomers();
@@ -314,12 +319,11 @@ export function registerTools(server: ToolServer) {
   );
 
   // List GAQL FROM resources (via google_ads_field metadata) or accounts
-  server.tool(
-    {
-      name: "list_resources",
-      description: "List GAQL FROM-able resources via google_ads_field (category=RESOURCE, selectable=true) or list accounts. output_format=table|json|csv.",
-      input_schema: ListResourcesSchema as any,
-    },
+  addTool(
+    server,
+    "list_resources",
+    "List GAQL FROM-able resources via google_ads_field (category=RESOURCE, selectable=true) or list accounts. output_format=table|json|csv.",
+    ListResourcesZ,
     async (input: any) => {
       const kind = String(input?.kind || 'resources').toLowerCase();
       if (kind === 'accounts') {
@@ -371,12 +375,11 @@ export function registerTools(server: ToolServer) {
   );
 
   // GAQL help: fetches and summarizes Google docs based on a question
-  server.tool(
-    {
-      name: "gaql_help",
-      description: "Targeted GAQL guidance from Google docs. Hints: set quick_tips=true for offline cheat-sheet; topics=[overview,grammar,structure,date_ranges,case_sensitivity,ordering,cookbook].",
-      input_schema: GaqlHelpSchema as any,
-    },
+  addTool(
+    server,
+    "gaql_help",
+    "Targeted GAQL guidance from Google docs. Hints: set quick_tips=true for offline cheat-sheet; topics=[overview,grammar,structure,date_ranges,case_sensitivity,ordering,cookbook].",
+    GaqlHelpZ,
     async (input: any) => {
       try {
         const text = await gaqlHelp({
