@@ -85,7 +85,7 @@ MIT (can be changed upon preference).
 - `pnpm run smoke`: real-world smoke against Google Ads (ADC required)
 
 ### Tools Overview (Schemas via Zod)
-- Notes: Tool input schemas are defined centrally with Zod and compiled to JSON Schema. We avoid top-level `oneOf`/`allOf`/`anyOf` for Claude/Anthropic compatibility.
+- Notes: Tool input schemas are defined centrally with Zod and compiled to JSON Schema. We avoid top-level `oneOf`/`allOf`/`anyOf` for Claude/Anthropic compatibility (see `test/schemaGuard.test.ts`).
 
 - `manage_auth`:
   - Inputs: `action` = `status` | `switch` | `refresh`; `config_name` (for switch); `allow_subprocess` (default false).
@@ -93,6 +93,8 @@ MIT (can be changed upon preference).
 - `list_resources`:
   - Inputs: `kind` = `resources` | `accounts` (default `resources`); optional `filter` (substring), `limit` (default 500), `output_format` = `table`|`json`|`csv`.
   - When `kind=resources`, lists FROM-able resources using google_ads_field; when `kind=accounts`, lists accessible account IDs.
+- `list_accounts`:
+  - Alias of `list_resources` with `kind=accounts`.
 - `execute_gaql_query`:
   - Inputs: `customer_id`, `query`, optional `page_size`, `page_token`, `auto_paginate` (bool), `max_pages` (1–20), `output_format` = `table`|`json`|`csv`.
   - Prints table/JSON/CSV, `Next Page Token` when paging manually, or `Pages fetched` when auto-paginating.

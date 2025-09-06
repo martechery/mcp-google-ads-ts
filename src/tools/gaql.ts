@@ -35,13 +35,14 @@ export async function executeGaql({ customerId, query, pageSize, pageToken }: Ex
   if (typeof pageSize === 'number' && pageSize > 0) body.pageSize = pageSize;
   if (pageToken) body.pageToken = pageToken;
 
-  const res = await fetch(url, {
+  const init: RequestInit = {
     method: 'POST',
     headers,
     body: JSON.stringify(body),
-  } as any);
+  };
+  const res = await fetch(url, init);
 
-  const contentType = (res.headers as any)?.get?.('content-type') || '';
+  const contentType = res.headers?.get?.('content-type') || '';
   if (res.ok) {
     const data = contentType.includes('application/json') ? await res.json() : await res.text();
     return { ok: true, status: res.status, data };

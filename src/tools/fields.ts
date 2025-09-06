@@ -15,7 +15,8 @@ export async function searchGoogleAdsFields(query: string): Promise<FieldSearchR
   const developerToken = process.env.GOOGLE_ADS_DEVELOPER_TOKEN || '';
   const headers = buildAdsHeaders({ accessToken: token, developerToken, quotaProjectId });
   const url = `https://googleads.googleapis.com/${API_VERSION}/googleAdsFields:search`;
-  const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify({ query }) } as any);
+  const init: RequestInit = { method: 'POST', headers, body: JSON.stringify({ query }) };
+  const res = await fetch(url, init);
   if (res.ok) {
     const data = await res.json();
     return { ok: true, status: res.status, data };
