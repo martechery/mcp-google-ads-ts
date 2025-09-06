@@ -365,7 +365,8 @@ export function registerTools(server: ToolServer) {
       const filter = (input?.filter || '').trim();
       const where = ["category = 'RESOURCE'", 'selectable = true'];
       if (filter) where.push(`name LIKE '%${filter.replace(/'/g, "''")}%'`);
-      const query = `SELECT name, category, selectable FROM google_ads_field WHERE ${where.join(' AND ')} ORDER BY name LIMIT ${limit}`;
+      // GoogleAdsFieldService search does NOT support FROM; use implicit FROM.
+      const query = `SELECT name, category, selectable WHERE ${where.join(' AND ')} ORDER BY name LIMIT ${limit}`;
       const res = await searchGoogleAdsFields(query);
       if (!res.ok) {
         const hint = mapAdsErrorMsg(res.status, res.errorText || '');

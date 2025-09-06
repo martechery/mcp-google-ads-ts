@@ -21,48 +21,67 @@ export const ListResourcesZ = z.object({
 export const ListResourcesSchema: JsonSchema = zodToJsonSchema(ListResourcesZ, 'ListResources') as unknown as JsonSchema;
 
 // Execute GAQL schema
-export const ExecuteGaqlZ = z.object({
-  customer_id: z
-    .preprocess((v) => (typeof v === 'number' ? String(v) : v), z.string())
-    .optional()
-    .describe('10-digit customer ID (no dashes), e.g., 1234567890. Optional. Aliases: customerId. If omitted, tool lists accounts and asks you to pick one.'),
-  query: z.string().describe(
-    [
-      'GAQL query string. Examples:',
-      "SELECT campaign.id, campaign.name, metrics.clicks FROM campaign WHERE segments.date DURING LAST_30_DAYS LIMIT 10",
-      "SELECT ad_group_ad.ad.id, metrics.impressions FROM ad_group_ad WHERE campaign.status = 'ENABLED' LIMIT 50",
-    ].join('\n')
-  ),
-  page_size: z.number().min(1).optional().describe('optional page size (API pagination), 1-10000'),
-  page_token: z.string().optional().describe('optional page token (API pagination)'),
-  auto_paginate: z.boolean().default(false).describe('fetch multiple pages automatically'),
-  max_pages: z.number().min(1).max(20).default(5).describe('limit when auto_paginate=true (1-20)'),
-  output_format: z.enum(['table','json','csv']).default('table').describe('render format'),
-});
+const normalizeAliases = (val: unknown) => {
+  if (!val || typeof val !== 'object') return val as any;
+  const o: any = { ...(val as any) };
+  if (o.customerId && !o.customer_id) o.customer_id = o.customerId;
+  if (typeof o.customer_id === 'number') o.customer_id = String(o.customer_id);
+  if (o.pageSize && !o.page_size) o.page_size = o.pageSize;
+  if (o.pageToken && !o.page_token) o.page_token = o.pageToken;
+  if (o.autoPaginate && !o.auto_paginate) o.auto_paginate = o.autoPaginate;
+  if (o.maxPages && !o.max_pages) o.max_pages = o.maxPages;
+  if (o.outputFormat && !o.output_format) o.output_format = o.outputFormat;
+  return o;
+};
+
+export const ExecuteGaqlZ = z.preprocess(
+  normalizeAliases,
+  z.object({
+    customer_id: z
+      .preprocess((v) => (typeof v === 'number' ? String(v) : v), z.string())
+      .optional()
+      .describe('10-digit customer ID (no dashes), e.g., 1234567890. Optional. Aliases: customerId. If omitted, tool lists accounts and asks you to pick one.'),
+    query: z.string().describe(
+      [
+        'GAQL query string. Examples:',
+        "SELECT campaign.id, campaign.name, metrics.clicks FROM campaign WHERE segments.date DURING LAST_30_DAYS LIMIT 10",
+        "SELECT ad_group_ad.ad.id, metrics.impressions FROM ad_group_ad WHERE campaign.status = 'ENABLED' LIMIT 50",
+      ].join('\n')
+    ),
+    page_size: z.number().min(1).optional().describe('optional page size (API pagination), 1-10000'),
+    page_token: z.string().optional().describe('optional page token (API pagination)'),
+    auto_paginate: z.boolean().default(false).describe('fetch multiple pages automatically'),
+    max_pages: z.number().min(1).max(20).default(5).describe('limit when auto_paginate=true (1-20)'),
+    output_format: z.enum(['table','json','csv']).default('table').describe('render format'),
+  })
+);
 export const ExecuteGaqlSchema: JsonSchema = zodToJsonSchema(ExecuteGaqlZ, 'ExecuteGaql') as unknown as JsonSchema;
 
 // Get Performance schema
-export const GetPerformanceZ = z.object({
-  customer_id: z
-    .preprocess((v) => (typeof v === 'number' ? String(v) : v), z.string())
-    .optional()
-    .describe('10-digit customer ID (no dashes), e.g., 1234567890. Optional. Aliases: customerId. If omitted, tool lists accounts and asks you to pick one.'),
-  level: z.enum(['campaign','ad_group','ad']).describe('Aggregation level'),
-  days: z.number().default(30).describe('Days back to query (1-365, default 30)'),
-  limit: z.number().default(50).describe('GAQL LIMIT (1-1000, default 50)'),
-  page_size: z.number().min(1).optional().describe('optional page size (API pagination), 1-10000'),
-  page_token: z.string().optional().describe('optional page token (API pagination)'),
-  auto_paginate: z.boolean().default(false).describe('fetch multiple pages automatically'),
-  max_pages: z.number().min(1).max(20).default(5).describe('limit when auto_paginate=true (1-20)'),
-  output_format: z.enum(['table','json','csv']).default('table').describe('render format'),
-  filters: z.object({
-    status: z.string().optional().describe('e.g., ENABLED, PAUSED'),
-    nameContains: z.string().optional().describe('substring in entity name (case sensitive)'),
-    campaignNameContains: z.string().optional().describe('substring in campaign name (case sensitive)'),
-    minClicks: z.number().optional().describe('minimum clicks (>=0)'),
-    minImpressions: z.number().optional().describe('minimum impressions (>=0)'),
-  }).optional().describe('optional performance filters'),
-});
+export const GetPerformanceZ = z.preprocess(
+  normalizeAliases,
+  z.object({
+    customer_id: z
+      .preprocess((v) => (typeof v === 'number' ? String(v) : v), z.string())
+      .optional()
+      .describe('10-digit customer ID (no dashes), e.g., 1234567890. Optional. Aliases: customerId. If omitted, tool lists accounts and asks you to pick one.'),
+    level: z.enum(['campaign','ad_group','ad']).describe('Aggregation level'),
+    days: z.number().default(30).describe('Days back to query (1-365, default 30)'),
+    limit: z.number().default(50).describe('GAQL LIMIT (1-1000, default 50)'),
+    page_size: z.number().min(1).optional().describe('optional page size (API pagination), 1-10000'),
+    page_token: z.string().optional().describe('optional page token (API pagination)'),
+    auto_paginate: z.boolean().default(false).describe('fetch multiple pages automatically'),
+    max_pages: z.number().min(1).max(20).default(5).describe('limit when auto_paginate=true (1-20)'),
+    output_format: z.enum(['table','json','csv']).default('table').describe('render format'),
+    filters: z.object({
+      status: z.string().optional().describe('e.g., ENABLED, PAUSED'),
+      nameContains: z.string().optional().describe('substring in entity name (case sensitive)'),
+      campaignNameContains: z.string().optional().describe('substring in campaign name (case sensitive)'),
+      minClicks: z.number().optional().describe('minimum clicks (>=0)'),
+      minImpressions: z.number().optional().describe('minimum impressions (>=0)'),
+    }).optional().describe('optional performance filters'),
+  })
+);
 export const GetPerformanceSchema: JsonSchema = zodToJsonSchema(GetPerformanceZ, 'GetPerformance') as unknown as JsonSchema;
 
 // GAQL Help schema
