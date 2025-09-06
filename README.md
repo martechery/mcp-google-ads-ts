@@ -93,10 +93,12 @@ MIT (can be changed upon preference).
   - Inputs: `kind` = `resources` | `accounts` (default `resources`); optional `filter` (substring), `limit` (default 500), `output_format` = `table`|`json`|`csv`.
   - When `kind=resources`, lists FROM-able resources using google_ads_field; when `kind=accounts`, lists accessible account IDs.
 - `execute_gaql_query`:
-  - Inputs: `customer_id`, `query`, optional `page_size`, `page_token`, `auto_paginate` (bool), `max_pages` (1–20), `output_format` = `table`|`json`|`csv`.
+  - Inputs: optional `customer_id`, `query`, optional `page_size`, `page_token`, `auto_paginate` (bool), `max_pages` (1–20), `output_format` = `table`|`json`|`csv`.
+  - If `customer_id` is omitted, the tool lists accessible accounts and asks you to re-run with a chosen ID.
   - Prints table/JSON/CSV, `Next Page Token` when paging manually, or `Pages fetched` when auto-paginating.
 - `get_performance`:
-  - Inputs: `customer_id`, `level` (`campaign` | `ad_group` | `ad`), optional `days` (30), `limit` (50), `filters`, `page_size`, `page_token`, `auto_paginate`, `max_pages`, `output_format`.
+  - Inputs: optional `customer_id`, `level` (`campaign` | `ad_group` | `ad`), optional `days` (30), `limit` (50), `filters`, `page_size`, `page_token`, `auto_paginate`, `max_pages`, `output_format`.
+  - If `customer_id` is omitted, the tool lists accessible accounts and asks you to re-run with a chosen ID.
   - Filters: `status`, `nameContains`, `campaignNameContains`, `minClicks`, `minImpressions`.
   - Output includes `customer.currency_code` and computed `metrics.cost_units`.
 

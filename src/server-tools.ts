@@ -145,6 +145,27 @@ export function registerTools(server: ToolServer) {
       input_schema: ExecuteGaqlSchema as any,
     },
     async (input: any) => {
+      if (!input.customer_id) {
+        const res = await listAccessibleCustomers();
+        if (!res.ok) {
+          const hint = mapAdsErrorMsg(res.status, res.errorText || '');
+          const lines = [
+            'No customer_id provided. Please choose an account and re-run with customer_id.',
+            `Error listing accounts (status ${res.status}): ${res.errorText || ''}`,
+          ];
+          if (hint) lines.push(`Hint: ${hint}`);
+          return { content: [{ type: 'text', text: lines.join('\n') }] };
+        }
+        const names = res.data?.resourceNames || [];
+        if (!names.length) return { content: [{ type: 'text', text: 'No accessible accounts found.' }] };
+        const rows = names.map((rn: string) => ({ account_id: (rn.split('/').pop() || rn) }));
+        const table = tabulate(rows, ['account_id']);
+        const lines = [
+          'No customer_id provided. Select one of the accounts below, then call again with customer_id.',
+          table,
+        ];
+        return { content: [{ type: 'text', text: lines.join('\n') }] };
+      }
       const auto = !!input.auto_paginate;
       const maxPages = Math.max(1, Math.min(20, Number(input.max_pages ?? 5)));
       const pageSize = (typeof input.page_size === 'number') ? Math.max(1, Math.min(10_000, Number(input.page_size))) : undefined;
@@ -206,6 +227,27 @@ export function registerTools(server: ToolServer) {
       input_schema: GetPerformanceSchema as any,
     },
     async (input: any) => {
+      if (!input.customer_id) {
+        const res = await listAccessibleCustomers();
+        if (!res.ok) {
+          const hint = mapAdsErrorMsg(res.status, res.errorText || '');
+          const lines = [
+            'No customer_id provided. Please choose an account and re-run with customer_id.',
+            `Error listing accounts (status ${res.status}): ${res.errorText || ''}`,
+          ];
+          if (hint) lines.push(`Hint: ${hint}`);
+          return { content: [{ type: 'text', text: lines.join('\n') }] };
+        }
+        const names = res.data?.resourceNames || [];
+        if (!names.length) return { content: [{ type: 'text', text: 'No accessible accounts found.' }] };
+        const rows = names.map((rn: string) => ({ account_id: (rn.split('/').pop() || rn) }));
+        const table = tabulate(rows, ['account_id']);
+        const lines = [
+          'No customer_id provided. Select one of the accounts below, then call again with customer_id.',
+          table,
+        ];
+        return { content: [{ type: 'text', text: lines.join('\n') }] };
+      }
       const days = Math.max(1, Math.min(365, Number(input.days ?? 30)));
       const limit = Math.max(1, Math.min(1000, Number(input.limit ?? 50)));
       const query = buildPerformanceQuery(input.level, days, limit, input.filters || {});
