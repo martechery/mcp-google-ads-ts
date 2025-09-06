@@ -89,7 +89,8 @@ MIT (can be changed upon preference).
   - Inputs: `action` = `status` | `switch` | `refresh`; `config_name` (for switch); `allow_subprocess` (default false).
   - Without subprocess, prints exact `gcloud` commands to run. With subprocess, executes them and verifies scope.
 - `list_resources`:
-  - Inputs: optional `filter` (substring), `limit` (default 500). Lists FROM-able resources using google_ads_field.
+  - Inputs: `kind` = `resources` | `accounts` (default `resources`); optional `filter` (substring), `limit` (default 500), `output_format` = `table`|`json`|`csv`.
+  - When `kind=resources`, lists FROM-able resources using google_ads_field; when `kind=accounts`, lists accessible account IDs.
 - `execute_gaql_query`:
   - Inputs: `customer_id`, `query`, optional `page_size`, `page_token`. Prints table and `Next Page Token`.
 - `get_performance`:
