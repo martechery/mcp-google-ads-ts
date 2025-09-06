@@ -1,4 +1,6 @@
-import { Server } from '@modelcontextprotocol/sdk/server';
+// Accept any MCP server that exposes tool() and connect()
+type ToolHandler = (input?: unknown) => Promise<unknown> | unknown;
+type ToolServer = { tool: (def: any, handler: ToolHandler) => void };
 import { executeGaql } from './tools/gaql.js';
 import { listAccessibleCustomers } from './tools/accounts.js';
 import { buildPerformanceQuery } from './tools/performance.js';
@@ -9,7 +11,7 @@ import { mapAdsErrorMsg } from './utils/errorMapping.js';
 import { microsToUnits } from './utils/currency.js';
 import { ManageAuthSchema, ListResourcesSchema, ExecuteGaqlSchema, GetPerformanceSchema, GaqlHelpSchema } from './schemas.js';
 
-export function registerTools(server: Server) {
+export function registerTools(server: ToolServer) {
   // Removed: ping and get_auth_status (status merged into manage_auth)
 
   // Manage auth tool (status implemented)
