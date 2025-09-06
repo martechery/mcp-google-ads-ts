@@ -1,5 +1,4 @@
 import { Server } from "@modelcontextprotocol/sdk/server";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/transports/stdio";
 import { registerTools } from "./server-tools.js";
 
 // Basic MCP server using the official SDK (no fastmcp)
@@ -10,6 +9,7 @@ export async function startServer() {
   });
   registerTools(server);
 
+  const { StdioServerTransport }: any = await import("@modelcontextprotocol/sdk/server/stdio");
   const transport = new StdioServerTransport();
   await server.connect(transport);
 }
