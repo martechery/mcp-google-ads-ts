@@ -20,6 +20,18 @@ function addTool(server: any, name: string, description: string, zodSchema: any,
   return server.tool(name, description, zodSchema, handler);
 }
 
+function normalizeArgs<T extends Record<string, any>>(input: T): T {
+  const o: any = { ...input };
+  // Common camelCase aliases → snake_case
+  if (o.customerId && !o.customer_id) o.customer_id = o.customerId;
+  if (o.pageSize && !o.page_size) o.page_size = o.pageSize;
+  if (o.pageToken && !o.page_token) o.page_token = o.pageToken;
+  if (o.autoPaginate && !o.auto_paginate) o.auto_paginate = o.autoPaginate;
+  if (o.maxPages && !o.max_pages) o.max_pages = o.maxPages;
+  if (o.outputFormat && !o.output_format) o.output_format = o.outputFormat;
+  return o as T;
+}
+
 export function registerTools(server: ToolServer) {
   // Removed: ping and get_auth_status (status merged into manage_auth)
 
@@ -148,9 +160,10 @@ export function registerTools(server: ToolServer) {
   addTool(
     server,
     "execute_gaql_query",
-    "Execute GAQL against Ads API. Hints: page_size/page_token for manual paging, or auto_paginate+max_pages. output_format=table|json|csv.",
+    "Execute GAQL. Aliases accepted: customerId, pageSize, pageToken, autoPaginate, maxPages, outputFormat.",
     ExecuteGaqlZ,
-    async (input: any) => {
+    async (_input: any) => {
+      const input = normalizeArgs(_input || {});
       if (!input.customer_id) {
         const res = await listAccessibleCustomers();
         if (!res.ok) {
@@ -229,9 +242,10 @@ export function registerTools(server: ToolServer) {
   addTool(
     server,
     "get_performance",
-    "Get performance at campaign|ad_group|ad with currency. Supports filters, pagination and output_format=table|json|csv.",
+    "Get performance (level: campaign|ad_group|ad). Aliases accepted: customerId, pageSize, pageToken, autoPaginate, maxPages, outputFormat.",
     GetPerformanceZ,
-    async (input: any) => {
+    async (_input: any) => {
+      const input = normalizeArgs(_input || {});
       if (!input.customer_id) {
         const res = await listAccessibleCustomers();
         if (!res.ok) {

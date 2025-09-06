@@ -23,9 +23,9 @@ export const ListResourcesSchema: JsonSchema = zodToJsonSchema(ListResourcesZ, '
 // Execute GAQL schema
 export const ExecuteGaqlZ = z.object({
   customer_id: z
-    .string()
+    .preprocess((v) => (typeof v === 'number' ? String(v) : v), z.string())
     .optional()
-    .describe('10-digit customer ID (no dashes), e.g., 1234567890. Optional: if omitted, the tool will list accessible accounts and ask you to pick one.'),
+    .describe('10-digit customer ID (no dashes), e.g., 1234567890. Optional. Aliases: customerId. If omitted, tool lists accounts and asks you to pick one.'),
   query: z.string().describe(
     [
       'GAQL query string. Examples:',
@@ -44,9 +44,9 @@ export const ExecuteGaqlSchema: JsonSchema = zodToJsonSchema(ExecuteGaqlZ, 'Exec
 // Get Performance schema
 export const GetPerformanceZ = z.object({
   customer_id: z
-    .string()
+    .preprocess((v) => (typeof v === 'number' ? String(v) : v), z.string())
     .optional()
-    .describe('10-digit customer ID (no dashes), e.g., 1234567890. Optional: if omitted, the tool will list accessible accounts and ask you to pick one.'),
+    .describe('10-digit customer ID (no dashes), e.g., 1234567890. Optional. Aliases: customerId. If omitted, tool lists accounts and asks you to pick one.'),
   level: z.enum(['campaign','ad_group','ad']).describe('Aggregation level'),
   days: z.number().default(30).describe('Days back to query (1-365, default 30)'),
   limit: z.number().default(50).describe('GAQL LIMIT (1-1000, default 50)'),
