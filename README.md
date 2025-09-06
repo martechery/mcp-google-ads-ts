@@ -34,11 +34,11 @@ npm run dev
 - `GOOGLE_ADS_AUTH_TYPE`: `adc` | `gcloud_cli` | `oauth` | `service_account`
 - `GOOGLE_ADS_GCLOUD_USE_CLI`: `true`/`false` – optional CLI token fallback
 - `GOOGLE_ADS_CREDENTIALS_PATH`: required for `oauth` and `service_account` modes
-- `GOOGLE_ADS_CUSTOMER_ID`: Ads customer ID
-- `GOOGLE_ADS_LOGIN_CUSTOMER_ID`: manager account (optional)
-- `GOOGLE_ADS_DEVELOPER_TOKEN`: developer token
-- `GOOGLE_ADS_ACCESS_TOKEN`: optional override (dev/tests) when not using ADC
-- `GOOGLE_ADS_API_VERSION`: optional API version override (default `v19`). Example: `v21`
+- `GOOGLE_ADS_DEVELOPER_TOKEN`: developer token (required for Ads API calls)
+- `GOOGLE_ADS_CUSTOMER_ID` (optional): 10‑digit Ads customer ID. If omitted, tools will list accessible accounts and ask you to pick one.
+- `GOOGLE_ADS_LOGIN_CUSTOMER_ID` (optional): manager (MCC) account ID; only needed when acting on a child through an MCC.
+- `GOOGLE_ADS_ACCESS_TOKEN` (optional): direct token override for dev/tests (bypasses ADC)
+- `GOOGLE_ADS_API_VERSION` (optional): API version override (default `v19`). Example: `v21`
 
 Notes:
 - Prefer ADC (`adc`) over CLI fallback for stability and automatic refresh.
