@@ -8,7 +8,11 @@ TypeScript implementation of a Model Context Protocol (MCP) server for Google Ad
 - Tools:
   - `ping`: health check.
   - `get_auth_status`: summarizes auth-related env configuration.
-  - `manage_auth` (placeholder): describes next steps for ADC, CLI fallback, OAuth, and Service Accounts.
+  - `manage_auth`: `status` (probe ADC + Ads scope), `switch` and `refresh` (optional subprocess; prints exact `gcloud` commands when disabled).
+  - `list_accounts`: lists accessible Ads accounts (customers:listAccessibleCustomers).
+  - `list_resources`: GAQL FROM discovery via `google_ads_field` (category=RESOURCE).
+  - `execute_gaql_query`: run GAQL with pagination support.
+  - `get_performance`: unified performance with filters, currency code, and cost in units.
 
 ## Install
 ```
@@ -61,13 +65,12 @@ Notes:
 }
 ```
 
-## Roadmap
-- Implement Google Ads auth flows:
-  - ADC via `google-auth-library` with Ads scope.
-  - Optional `gcloud auth print-access-token` fallback.
-  - OAuth + Service Account JSON handling.
-- Add GAQL query tool and header builder.
-- Tests and examples.
+## Current Capabilities
+- Auth via ADC (preferred) with optional `gcloud` subprocess actions through `manage_auth`.
+- GAQL execution with `page_size`/`page_token`; outputs `Next Page Token` when present.
+- `list_resources` to help construct valid GAQL FROM clauses.
+- Error mapping for common 400/401/403 responses with actionable hints.
+- Performance results include `customer.currency_code` and `metrics.cost_units` (micros→units).
 
 ## License
 MIT (can be changed upon preference).
@@ -84,12 +87,17 @@ MIT (can be changed upon preference).
 - `pnpm run smoke`: real-world smoke against Google Ads (ADC required)
 
 ### Tools Overview
-- `execute_gaql_query`: POST a GAQL query to `v19`.
-- `list_accounts`: lists accessible accounts (uses ADC/dev token headers).
-- `get_performance`: unified performance at `campaign` | `ad_group` | `ad` levels.
-  - Inputs: `customer_id`, `level`, optional `days` (default 30), `limit` (default 50), `filters`.
+- `manage_auth`:
+  - Inputs: `action` = `status` | `switch` | `refresh`; `config_name` (for switch); `allow_subprocess` (default false).
+  - Without subprocess, prints exact `gcloud` commands to run. With subprocess, executes them and verifies scope.
+- `list_resources`:
+  - Inputs: optional `filter` (substring), `limit` (default 500). Lists FROM-able resources using google_ads_field.
+- `execute_gaql_query`:
+  - Inputs: `customer_id`, `query`, optional `page_size`, `page_token`. Prints table and `Next Page Token`.
+- `get_performance`:
+  - Inputs: `customer_id`, `level` (`campaign` | `ad_group` | `ad`), optional `days` (30), `limit` (50), `filters`, `page_size`, `page_token`.
   - Filters: `status`, `nameContains`, `campaignNameContains`, `minClicks`, `minImpressions`.
-  - Always includes `customer.currency_code` so costs are interpretable.
+  - Output includes `customer.currency_code` and computed `metrics.cost_units`.
 
 ### Smoke Test (real API)
 Requires ADC and a developer token. Make sure:
