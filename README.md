@@ -115,3 +115,21 @@ export REAL_ADS_TEST=true
 export GOOGLE_ADS_DEVELOPER_TOKEN=...
 pnpm test
 ```
+
+## Examples
+
+- manage_auth (status):
+  - Input: `{ "action": "status" }`
+  - Output includes environment summary, ADC probe, Ads scope check, and accessible accounts count.
+
+- manage_auth (switch without subprocess):
+  - Input: `{ "action": "switch", "config_name": "work" }`
+  - Output prints: `gcloud config configurations activate work` (no execution).
+
+- execute_gaql_query with pagination:
+  - Input: `{ "customer_id": "1234567890", "query": "SELECT campaign.id FROM campaign LIMIT 1", "page_size": 1000 }`
+  - Output prints a table and optionally `Next Page Token: ...`.
+
+- get_performance with filters:
+  - Input: `{ "customer_id": "1234567890", "level": "campaign", "days": 30, "filters": { "status": "ENABLED" } }`
+  - Output includes `customer.currency_code` and computed `metrics.cost_units`.
