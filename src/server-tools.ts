@@ -16,19 +16,36 @@ function addTool(server: any, name: string, description: string, zodSchema: any,
   if (server && typeof server.tools === 'object') {
     return server.tool({ name, description, input_schema: {} }, handler);
   }
-  // Prefer McpServer signature: tool(name, description, zodSchema, handler)
-  return server.tool(name, description, zodSchema, handler);
+  // Prefer McpServer signature using paramsSchema (ZodRawShape), then callback.
+  // If a ZodObject was provided, extract its raw shape.
+  let shape = zodSchema;
+  try {
+    if (zodSchema && zodSchema._def && typeof zodSchema._def.shape === 'function') {
+      shape = zodSchema._def.shape();
+    }
+  } catch (e) {
+    // ignore and use provided schema as-is
+  }
+  return server.tool(name, description, shape, handler);
 }
 
 function normalizeArgs<T extends Record<string, any>>(input: T): T {
   const o: any = { ...input };
   // Common camelCase aliases → snake_case
   if (o.customerId && !o.customer_id) o.customer_id = o.customerId;
+  if (o.gaql && !o.query) o.query = o.gaql;
   if (o.pageSize && !o.page_size) o.page_size = o.pageSize;
   if (o.pageToken && !o.page_token) o.page_token = o.pageToken;
   if (o.autoPaginate && !o.auto_paginate) o.auto_paginate = o.autoPaginate;
   if (o.maxPages && !o.max_pages) o.max_pages = o.maxPages;
   if (o.outputFormat && !o.output_format) o.output_format = o.outputFormat;
+  if (o.resource && !o.kind) o.kind = o.resource;
+  if (o.resource_type && !o.kind) o.kind = o.resource_type;
+  // Date range convenience (very limited mapping)
+  if (typeof o.date_range === 'string' && !o.days) {
+    const dr = o.date_range.toUpperCase();
+    if (dr === 'LAST_WEEK' || dr === 'LAST_7_DAYS') o.days = 7;
+  }
   return o as T;
 }
 
