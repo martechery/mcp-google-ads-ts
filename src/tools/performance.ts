@@ -14,6 +14,9 @@ export function buildPerformanceQuery(
   limit = 50,
   filters: PerformanceFilters = {}
 ): string {
+  // Runtime bounds
+  const safeDays = Math.max(1, Math.min(365, Math.floor(days)));
+  const safeLimit = Math.max(1, Math.min(1000, Math.floor(limit)));
   const baseMetrics = `
     metrics.impressions,
     metrics.clicks,
@@ -72,7 +75,7 @@ export function buildPerformanceQuery(
     SELECT
       ${fields}
     FROM ${from}
-    WHERE segments.date DURING LAST_${days}_DAYS`];
+    WHERE segments.date DURING LAST_${safeDays}_DAYS`];
 
   // Apply filters
   const esc = (v: string) => v.replace(/'/g, "''");
@@ -85,7 +88,7 @@ export function buildPerformanceQuery(
   const query = `
     ${whereClauses.join('\n    ')}
     ORDER BY metrics.cost_micros DESC
-    LIMIT ${limit}
+    LIMIT ${safeLimit}
   `;
   return query;
 }

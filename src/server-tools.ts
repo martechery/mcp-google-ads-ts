@@ -145,7 +145,7 @@ export function registerTools(server: Server) {
     async (input: any) => {
       const auto = !!input.auto_paginate;
       const maxPages = Math.max(1, Math.min(20, Number(input.max_pages ?? 5)));
-      const pageSize = input.page_size;
+      const pageSize = (typeof input.page_size === 'number') ? Math.max(1, Math.min(10_000, Number(input.page_size))) : undefined;
       let pageToken = input.page_token as string | undefined;
       let all: any[] = [];
       let lastToken: string | undefined;
@@ -223,10 +223,12 @@ export function registerTools(server: Server) {
       input_schema: GetPerformanceSchema as any,
     },
     async (input: any) => {
-      const query = buildPerformanceQuery(input.level, input.days ?? 30, input.limit ?? 50, input.filters || {});
+      const days = Math.max(1, Math.min(365, Number(input.days ?? 30)));
+      const limit = Math.max(1, Math.min(1000, Number(input.limit ?? 50)));
+      const query = buildPerformanceQuery(input.level, days, limit, input.filters || {});
       const auto = !!input.auto_paginate;
       const maxPages = Math.max(1, Math.min(20, Number(input.max_pages ?? 5)));
-      const pageSize = input.page_size;
+      const pageSize = (typeof input.page_size === 'number') ? Math.max(1, Math.min(10_000, Number(input.page_size))) : undefined;
       let pageToken = input.page_token as string | undefined;
       let all: any[] = [];
       let lastToken: string | undefined;
