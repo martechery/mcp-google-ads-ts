@@ -7,6 +7,7 @@ import { searchGoogleAdsFields } from './tools/fields.js';
 import { gaqlHelp } from './tools/gaqlHelp.js';
 import { mapAdsErrorMsg } from './utils/errorMapping.js';
 import { microsToUnits } from './utils/currency.js';
+import { ManageAuthSchema, ListResourcesSchema } from './schemas.js';
 
 export function registerTools(server: Server) {
   // Removed: ping and get_auth_status (status merged into manage_auth)
@@ -17,15 +18,7 @@ export function registerTools(server: Server) {
       name: "manage_auth",
       description:
         "Manage Google Ads auth: status (implemented), switch/refresh (behind allow_subprocess flag).",
-      input_schema: {
-        type: "object",
-        additionalProperties: false,
-        properties: {
-          action: { type: "string", description: "status | switch | refresh", default: "status" },
-          config_name: { type: "string", description: "gcloud configuration name (for switch)" },
-          allow_subprocess: { type: "boolean", description: "allow running gcloud subprocesses", default: false },
-        },
-      },
+      input_schema: ManageAuthSchema as any,
     },
     async (input: any) => {
       const action = (input?.action || 'status').toLowerCase();
@@ -337,16 +330,7 @@ export function registerTools(server: Server) {
     {
       name: "list_resources",
       description: "List GAQL FROM-able resources via google_ads_field (category=RESOURCE, selectable=true) or list accounts. output_format=table|json|csv.",
-      input_schema: {
-        type: "object",
-        additionalProperties: false,
-        properties: {
-          kind: { type: "string", enum: ["resources","accounts"], description: "what to list", default: "resources" },
-          filter: { type: "string", description: "optional substring filter on resource name" },
-          limit: { type: "number", default: 500 },
-          output_format: { type: "string", enum: ["table","json","csv"], default: "table" },
-        },
-      },
+      input_schema: ListResourcesSchema as any,
     },
     async (input: any) => {
       const kind = String(input?.kind || 'resources').toLowerCase();
