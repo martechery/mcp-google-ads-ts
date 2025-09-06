@@ -43,11 +43,11 @@ importers:
         specifier: ^1.6.0
         version: 1.6.1(@types/node@20.19.13)
       zod:
-        specifier: ^4.1.5
-        version: 4.1.5
+        specifier: ^3.24.1
+        version: 3.25.76
       zod-to-json-schema:
         specifier: ^3.24.6
-        version: 3.24.6(zod@4.1.5)
+        version: 3.24.6(zod@3.25.76)
 
 packages:
 
@@ -1710,9 +1710,6 @@ packages:
   zod@3.25.76:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
 
-  zod@4.1.5:
-    resolution: {integrity: sha512-rcUUZqlLJgBC33IT3PNMgsCq6TzLQEG/Ei/KTCU0PedSWRMAXoOUN+4t/0H+Q8bdnLPdqUYnvboJT0bn/229qg==}
-
 snapshots:
 
   '@esbuild/aix-ppc64@0.21.5':
@@ -3324,10 +3321,4 @@ snapshots:
     dependencies:
       zod: 3.25.76
 
-  zod-to-json-schema@3.24.6(zod@4.1.5):
-    dependencies:
-      zod: 4.1.5
-
   zod@3.25.76: {}
-
-  zod@4.1.5: {}
