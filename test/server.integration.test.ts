@@ -46,13 +46,13 @@ describe('server tools integration', () => {
     expect(text).toContain('C');
   });
 
-  it('list_accounts prints formatted IDs', async () => {
+  it('list_resources(kind=accounts) prints IDs', async () => {
     const { listAccessibleCustomers } = await import('../src/tools/accounts.js');
     (listAccessibleCustomers as any).mockResolvedValue({ ok: true, status: 200, data: { resourceNames: ['customers/1234567890', 'customers/0000012345'] } });
     const { registerTools } = await import('../src/server-tools.js');
     const server = new FakeServer();
     registerTools(server as any);
-    const res = await server.tools['list_accounts']({});
+    const res = await server.tools['list_resources']({ kind: 'accounts' });
     const text = res.content[0].text as string;
     expect(text).toContain('Accounts:');
     expect(text).toContain('1234567890');

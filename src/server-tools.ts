@@ -194,26 +194,7 @@ export function registerTools(server: Server) {
     }
   );
 
-  // List accessible accounts
-  server.tool(
-    {
-      name: "list_accounts",
-      description: "List accessible Google Ads accounts (alias of list_resources kind=accounts)",
-      input_schema: { type: "object", additionalProperties: false, properties: {} },
-    },
-    async () => {
-      const handler = (server as any).tools?.list_resources as ((input: any) => Promise<any>) | undefined;
-      if (handler) return handler({ kind: 'accounts' });
-      const res = await listAccessibleCustomers();
-      if (!res.ok) {
-        return { content: [{ type: "text", text: `Error: ${res.errorText || `status ${res.status}`}` }] };
-      }
-      const names = res.data?.resourceNames || [];
-      const rows = names.map((rn: string) => ({ account_id: (rn.split('/').pop() || rn) }));
-      const table = tabulate(rows, ['account_id']);
-      return { content: [{ type: "text", text: `Accounts:\n${table}` }] };
-    }
-  );
+  // List accessible accounts: removed for simplicity. Use list_resources(kind=accounts).
 
   // Unified performance tool
   server.tool(

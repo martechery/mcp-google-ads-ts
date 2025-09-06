@@ -7,7 +7,7 @@ TypeScript implementation of a Model Context Protocol (MCP) server for Google Ad
 - Minimal server scaffolding with stdio transport.
 - Tools:
   - `manage_auth`: combines env summary + probes; actions include `status` (summarize env, probe ADC + Ads scope), `switch` and `refresh` (optional subprocess; prints exact `gcloud` commands when disabled).
-  - `list_resources`: GAQL FROM discovery via `google_ads_field` (category=RESOURCE) and account listing via `kind=accounts` (alias tool: `list_accounts`).
+  - `list_resources`: GAQL FROM discovery via `google_ads_field` (category=RESOURCE) and account listing via `kind=accounts`.
   - `execute_gaql_query`: run GAQL with pagination support.
   - `get_performance`: unified performance with filters, currency code, and cost in units.
 
@@ -92,8 +92,6 @@ MIT (can be changed upon preference).
 - `list_resources`:
   - Inputs: `kind` = `resources` | `accounts` (default `resources`); optional `filter` (substring), `limit` (default 500), `output_format` = `table`|`json`|`csv`.
   - When `kind=resources`, lists FROM-able resources using google_ads_field; when `kind=accounts`, lists accessible account IDs.
-- `list_accounts`:
-  - Alias of `list_resources` with `kind=accounts`.
 - `execute_gaql_query`:
   - Inputs: `customer_id`, `query`, optional `page_size`, `page_token`, `auto_paginate` (bool), `max_pages` (1–20), `output_format` = `table`|`json`|`csv`.
   - Prints table/JSON/CSV, `Next Page Token` when paging manually, or `Pages fetched` when auto-paginating.
