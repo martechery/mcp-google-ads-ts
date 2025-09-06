@@ -7,7 +7,7 @@ import { searchGoogleAdsFields } from './tools/fields.js';
 import { gaqlHelp } from './tools/gaqlHelp.js';
 import { mapAdsErrorMsg } from './utils/errorMapping.js';
 import { microsToUnits } from './utils/currency.js';
-import { ManageAuthSchema, ListResourcesSchema } from './schemas.js';
+import { ManageAuthSchema, ListResourcesSchema, ExecuteGaqlSchema, GetPerformanceSchema, GaqlHelpSchema } from './schemas.js';
 
 export function registerTools(server: Server) {
   // Removed: ping and get_auth_status (status merged into manage_auth)
@@ -140,20 +140,7 @@ export function registerTools(server: Server) {
     {
       name: "execute_gaql_query",
       description: "Execute GAQL against Ads API v19. Hints: page_size/page_token for manual paging, or auto_paginate+max_pages. output_format=table|json|csv.",
-      input_schema: {
-        type: "object",
-        additionalProperties: false,
-        properties: {
-          customer_id: { type: "string", description: "10-digit customer ID (no dashes)" },
-          query: { type: "string", description: "GAQL query string" },
-          page_size: { type: "number", description: "optional page size (API pagination)" },
-          page_token: { type: "string", description: "optional page token (API pagination)" },
-          auto_paginate: { type: "boolean", description: "fetch multiple pages automatically", default: false },
-          max_pages: { type: "number", description: "limit when auto_paginate=true (1-20)", default: 5 },
-          output_format: { type: "string", enum: ["table","json","csv"], default: "table" },
-        },
-        required: ["customer_id", "query"],
-      },
+      input_schema: ExecuteGaqlSchema as any,
     },
     async (input: any) => {
       const auto = !!input.auto_paginate;
@@ -233,33 +220,7 @@ export function registerTools(server: Server) {
     {
       name: "get_performance",
       description: "Get performance at campaign|ad_group|ad with currency. Supports filters, pagination (page_size/page_token), auto_paginate/max_pages, and output_format=table|json|csv.",
-      input_schema: {
-        type: "object",
-        additionalProperties: false,
-        properties: {
-          customer_id: { type: "string", description: "10-digit customer ID (no dashes)" },
-          level: { type: "string", enum: ["campaign", "ad_group", "ad"], description: "Aggregation level" },
-          days: { type: "number", default: 30 },
-          limit: { type: "number", default: 50 },
-          page_size: { type: "number", description: "optional page size (API pagination)" },
-          page_token: { type: "string", description: "optional page token (API pagination)" },
-          auto_paginate: { type: "boolean", description: "fetch multiple pages automatically", default: false },
-          max_pages: { type: "number", description: "limit when auto_paginate=true (1-20)", default: 5 },
-          output_format: { type: "string", enum: ["table","json","csv"], default: "table" },
-          filters: {
-            type: "object",
-            additionalProperties: false,
-            properties: {
-              status: { type: "string" },
-              nameContains: { type: "string" },
-              campaignNameContains: { type: "string" },
-              minClicks: { type: "number" },
-              minImpressions: { type: "number" },
-            },
-          },
-        },
-        required: ["customer_id", "level"],
-      },
+      input_schema: GetPerformanceSchema as any,
     },
     async (input: any) => {
       const query = buildPerformanceQuery(input.level, input.days ?? 30, input.limit ?? 50, input.filters || {});
@@ -387,17 +348,7 @@ export function registerTools(server: Server) {
     {
       name: "gaql_help",
       description: "Targeted GAQL guidance from Google docs. Hints: set quick_tips=true for offline cheat-sheet; topics=[overview,grammar,structure,date_ranges,case_sensitivity,ordering,cookbook].",
-      input_schema: {
-        type: "object",
-        additionalProperties: false,
-        properties: {
-          question: { type: "string", description: "your GAQL question or keywords" },
-          topics: { type: "array", items: { type: "string" }, description: "subset of topics to search" },
-          quick_tips: { type: "boolean", description: "return built-in cheat-sheet without network" },
-          include_examples: { type: "boolean", description: "reserve space for examples (best-effort)" },
-          max_chars: { type: "number", description: "max characters to return (400-4000)" },
-        },
-      },
+      input_schema: GaqlHelpSchema as any,
     },
     async (input: any) => {
       try {
