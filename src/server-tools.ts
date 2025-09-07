@@ -74,8 +74,8 @@ export function registerTools(server: ToolServer) {
       }
 
       if (action === 'status') {
-        const accountId = process.env.GOOGLE_ADS_ACCOUNT_ID || process.env.GOOGLE_ADS_CUSTOMER_ID || "(not set)";
-        const managerAccountId = process.env.GOOGLE_ADS_MANAGER_ACCOUNT_ID || process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID || "(not set)";
+        const accountId = process.env.GOOGLE_ADS_ACCOUNT_ID || "(not set)";
+        const managerAccountId = process.env.GOOGLE_ADS_MANAGER_ACCOUNT_ID || "(not set)";
         const developerToken = process.env.GOOGLE_ADS_DEVELOPER_TOKEN || "(not set)";
         const gacEnv = process.env.GOOGLE_APPLICATION_CREDENTIALS || "(not set)";
 
