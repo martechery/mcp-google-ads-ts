@@ -125,6 +125,10 @@ Note: You don’t run tool payloads yourself — your MCP client’s LLM calls t
   - Example (resources): `{ "kind": "resources", "filter": "campaign", "limit": 50 }`
   - Example (accounts): `{ "kind": "accounts", "output_format": "table" }`
 
+  - How to ask your MCP client:
+    - “List GAQL FROM resources containing ‘campaign’ (limit 50).”
+    - “List my accessible Google Ads accounts.”
+
 - execute_gaql_query
   - Purpose: Run raw GAQL with optional pagination.
   - Inputs:
@@ -133,6 +137,9 @@ Note: You don’t run tool payloads yourself — your MCP client’s LLM calls t
     - Paging: `page_size`, `page_token`, `auto_paginate` (bool), `max_pages` (1–20)
     - `output_format`: `table` | `json` | `csv` (default `table`)
   - Output: Table/JSON/CSV of results. Shows `Next Page Token` when not auto-paginating.
+  - How to ask your MCP client:
+    - “Run GAQL on 1234567890: SELECT campaign.id, metrics.clicks FROM campaign WHERE segments.date DURING LAST_30_DAYS LIMIT 10.”
+    - “Run that query and give me CSV.”
   - Example:
     ```json
     {
@@ -157,6 +164,9 @@ Note: You don’t run tool payloads yourself — your MCP client’s LLM calls t
       - `campaignNameContains` (ignored at `account` level)
       - `minClicks`, `minImpressions`
   - Output: Includes `customer.currency_code` and computed `metrics.cost_units`.
+  - How to ask your MCP client:
+    - “Show account-level performance for 1234567890 (last 30 days).”
+    - “Show campaign performance, only ENABLED, min 10 clicks.”
   - Examples:
     - Account (last 30 days): `{ "customer_id": "1234567890", "level": "account" }`
     - Campaigns filtered: `{ "level": "campaign", "filters": { "status": "ENABLED", "minClicks": 10 } }`
@@ -169,6 +179,9 @@ Note: You don’t run tool payloads yourself — your MCP client’s LLM calls t
     - `quick_tips`: boolean (default `false`). When `true`, returns an offline tips list (no network).
     - `include_examples`: boolean (best-effort, subject to `max_chars`)
     - `max_chars`: 400–4000 (default 1600)
+  - How to ask your MCP client:
+    - “Give me GAQL quick tips.”
+    - “GAQL help on date ranges and ordering with examples.”
   - Examples:
     - Offline: `{ "quick_tips": true }`
     - Focused: `{ "question": "date ranges and ordering", "topics": ["date_ranges", "ordering"], "max_chars": 1200 }`
