@@ -60,8 +60,8 @@ export function registerTools(server: ToolServer) {
     ManageAuthZ,
     async (input: any) => {
       const action = (input?.action || 'status').toLowerCase();
-      const defaultAllow = String(process.env.GOOGLE_ADS_MANAGE_AUTH_ALLOW_SUBPROCESS_DEFAULT || '').toLowerCase() === 'true';
-      const allowSub = defaultAllow || !!input?.allow_subprocess;
+      // Default: execute subprocess actions unless explicitly disabled
+      const allowSub = input?.allow_subprocess !== false;
 
       async function isGcloudAvailable(): Promise<boolean> {
         try {
@@ -130,7 +130,7 @@ export function registerTools(server: ToolServer) {
           const text = [
             'Planned action: switch gcloud configuration',
             `Command: ${cmd}`,
-            'Tip: Re-run with allow_subprocess=true to execute from MCP.',
+            'Tip: Re-run with allow_subprocess=true (default) to execute from MCP, or set allow_subprocess=false to only print steps.',
           ].join('\n');
           return { content: [{ type: 'text', text }] };
         }
@@ -160,7 +160,7 @@ export function registerTools(server: ToolServer) {
           const text = [
             'Planned action: refresh ADC credentials for Ads scope',
             `Command: ${loginCmd}`,
-            'Tip: Re-run with allow_subprocess=true to execute from MCP.',
+            'Tip: Re-run with allow_subprocess=true (default) to execute from MCP, or set allow_subprocess=false to only print steps.',
           ].join('\n');
           return { content: [{ type: 'text', text }] };
         }

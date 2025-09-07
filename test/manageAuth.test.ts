@@ -58,6 +58,15 @@ describe('manage_auth tool', () => {
     expect(text).toContain('Next: refresh ADC credentials');
   });
 
+  it('switch executes by default when allow_subprocess is omitted', async () => {
+    const { registerTools } = await import('../src/server-tools.js');
+    const server = new FakeServer();
+    registerTools(server as any);
+    const res = await server.tools['manage_auth']({ action: 'switch', config_name: 'work' });
+    const text = res.content[0].text as string;
+    expect(text).toContain('gcloud switch (work) exit: 0');
+  });
+
   it('refresh returns instructions without subprocess', async () => {
     const { registerTools } = await import('../src/server-tools.js');
     const server = new FakeServer();
@@ -76,5 +85,14 @@ describe('manage_auth tool', () => {
     const text = res.content[0].text as string;
     expect(text).toContain('refresh login exit: 0');
     expect(text).toContain('Ads scope check after refresh: OK');
+  });
+
+  it('refresh executes by default when allow_subprocess is omitted', async () => {
+    const { registerTools } = await import('../src/server-tools.js');
+    const server = new FakeServer();
+    registerTools(server as any);
+    const res = await server.tools['manage_auth']({ action: 'refresh' });
+    const text = res.content[0].text as string;
+    expect(text).toContain('refresh login exit: 0');
   });
 });

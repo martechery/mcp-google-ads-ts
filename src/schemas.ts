@@ -7,7 +7,7 @@ export type JsonSchema = Record<string, unknown>;
 export const ManageAuthZ = z.object({
   action: z.enum(['status', 'switch', 'refresh']).default('status').describe('status | switch | refresh'),
   config_name: z.string().optional().describe('gcloud configuration name (for switch)'),
-  allow_subprocess: z.boolean().default(false).describe('allow running gcloud subprocesses'),
+  allow_subprocess: z.boolean().optional().describe('execute gcloud steps (default true). Set false to only print commands.'),
 });
 export const ManageAuthSchema: JsonSchema = zodToJsonSchema(ManageAuthZ, 'ManageAuth') as unknown as JsonSchema;
 
