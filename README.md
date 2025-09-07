@@ -65,9 +65,11 @@ Google Ads MCP server with GCloud/ADC auth. Minimal, fast, and ready for Claude/
 ```
 
 ## Auth Options
-- Use ADC (recommended):
-  - `gcloud auth application-default login --scopes=https://www.googleapis.com/auth/adwords`
+- Preferred: ADC via gcloud CLI
+  - Install gcloud and run:
+    - `gcloud auth application-default login --scopes=https://www.googleapis.com/auth/adwords`
   - Set `GOOGLE_ADS_AUTH_TYPE=adc`
+  - Note: If you already have an ADC file (authorized_user JSON), point to it with `GOOGLE_APPLICATION_CREDENTIALS=/path/to/adc.json`.
 - Optional CLI token fallback: set `GOOGLE_ADS_GCLOUD_USE_CLI=true`
 - OAuth/Service Account remain supported via `GOOGLE_ADS_CREDENTIALS_PATH`.
 
@@ -79,8 +81,8 @@ Google Ads MCP server with GCloud/ADC auth. Minimal, fast, and ready for Claude/
     - `action`: `status` | `switch` | `refresh` (default `status`)
     - `config_name`: gcloud config name (for `switch`)
     - `allow_subprocess`: boolean (default true). Set to `false` to only print commands (no execution).
-  - Output: Text summary including env values, ADC probe, Ads scope check, accessible accounts count. For `switch`/`refresh`, prints planned or executed `gcloud` steps.
-  - Behavior: If gcloud is not found on PATH, the tool falls back to printing the exact commands and an install link.
+  - Output: Text summary including env values, ADC probe, Ads scope check, accessible accounts count. For `switch`/`refresh`, executes `gcloud` by default (or prints commands if `allow_subprocess=false`).
+  - Behavior: If gcloud is not found on PATH, the tool falls back to printing the exact commands and an install link. No local OAuth fallback is performed.
   - Example (status): `{ "action": "status" }`
   - Example (print steps, don’t run): `{ "action": "refresh" }`
   - Example (execute): `{ "action": "switch", "config_name": "work", "allow_subprocess": true }`
