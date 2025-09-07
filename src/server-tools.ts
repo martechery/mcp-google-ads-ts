@@ -80,6 +80,7 @@ export function registerTools(server: ToolServer) {
         const customerId = process.env.GOOGLE_ADS_CUSTOMER_ID || "(not set)";
         const developerToken = process.env.GOOGLE_ADS_DEVELOPER_TOKEN || "(not set)";
         const loginCustomerId = process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID || "(not set)";
+        const gacEnv = process.env.GOOGLE_APPLICATION_CREDENTIALS || "(not set)";
 
         const lines: string[] = [
           'Google Ads Auth Status',
@@ -88,6 +89,7 @@ export function registerTools(server: ToolServer) {
           `  GOOGLE_ADS_AUTH_TYPE: ${authType}`,
           `  GOOGLE_ADS_GCLOUD_USE_CLI: ${useCli}`,
           `  GOOGLE_ADS_CREDENTIALS_PATH: ${credsPath}`,
+          `  GOOGLE_APPLICATION_CREDENTIALS: ${gacEnv}`,
           `  GOOGLE_ADS_CUSTOMER_ID: ${customerId}`,
           `  GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${loginCustomerId}`,
           `  GOOGLE_ADS_DEVELOPER_TOKEN: ${developerToken ? "(set)" : "(not set)"}`,
@@ -116,6 +118,32 @@ export function registerTools(server: ToolServer) {
           }
         } catch (e: any) {
           lines.push(`  Error determining auth status: ${e?.message || String(e)}`);
+        }
+
+        // ADC file discovery hints
+        try {
+          const fs = await import('node:fs');
+          const path = await import('node:path');
+          const os = await import('node:os');
+          const hints: string[] = [];
+          const envPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+          const exists = (p?: string | null) => !!p && fs.existsSync(p);
+          let wellKnown: string | null = null;
+          if (process.platform === 'win32') {
+            const appData = process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming');
+            wellKnown = path.join(appData, 'gcloud', 'application_default_credentials.json');
+          } else {
+            wellKnown = path.join(os.homedir(), '.config', 'gcloud', 'application_default_credentials.json');
+          }
+          if (exists(envPath)) hints.push(`  ADC file (env): ${envPath}`);
+          else if (exists(wellKnown)) hints.push(`  ADC file (well-known): ${wellKnown}`);
+          else hints.push('  ADC file: not found in env or well-known path');
+          lines.push('', 'ADC file discovery:', ...hints);
+          if (!exists(envPath) && !exists(wellKnown)) {
+            lines.push('  Hint: Install gcloud to create ADC via browser login, or provide an authorized_user JSON and set GOOGLE_APPLICATION_CREDENTIALS to its path.');
+          }
+        } catch {
+          // ignore discovery errors
         }
         return { content: [{ type: 'text', text: lines.join('\n') }] };
       }
