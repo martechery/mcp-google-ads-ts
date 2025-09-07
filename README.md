@@ -71,7 +71,7 @@ Google Ads MCP server with GCloud/ADC auth. Minimal, fast, and ready for Claude/
   - Set `GOOGLE_ADS_AUTH_TYPE=adc`
   - Note: If you already have an ADC file (authorized_user JSON), point to it with `GOOGLE_APPLICATION_CREDENTIALS=/path/to/adc.json`.
 - Optional CLI token fallback: set `GOOGLE_ADS_GCLOUD_USE_CLI=true`
-- OAuth/Service Account remain supported via `GOOGLE_ADS_CREDENTIALS_PATH`.
+- Other modes (raw OAuth client JSON, service accounts) are not supported here. Google Ads requires user OAuth; service accounts are generally not accepted.
 
 ## Tools
 
@@ -149,7 +149,7 @@ Google Ads MCP server with GCloud/ADC auth. Minimal, fast, and ready for Claude/
 ## Env Vars
 - `GOOGLE_ADS_AUTH_TYPE`: `adc` | `gcloud_cli` | `oauth` | `service_account`
 - `GOOGLE_ADS_DEVELOPER_TOKEN`: required for API calls
-- Optional: `GOOGLE_ADS_CUSTOMER_ID`, `GOOGLE_ADS_LOGIN_CUSTOMER_ID`, `GOOGLE_ADS_API_VERSION` (default `v19`), `GOOGLE_ADS_GCLOUD_USE_CLI`, `GOOGLE_ADS_CREDENTIALS_PATH`, `GOOGLE_ADS_ACCESS_TOKEN`
+- Optional: `GOOGLE_ADS_CUSTOMER_ID`, `GOOGLE_ADS_LOGIN_CUSTOMER_ID`, `GOOGLE_ADS_API_VERSION` (default `v19`), `GOOGLE_ADS_GCLOUD_USE_CLI`, `GOOGLE_APPLICATION_CREDENTIALS`, `GOOGLE_ADS_ACCESS_TOKEN`
 
 ## Development
 - `npm run dev` — run from TS via `tsx`
