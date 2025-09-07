@@ -165,9 +165,17 @@ Google Ads MCP server with GCloud/ADC auth. Minimal, fast, and ready for Claude/
     - Focused: `{ "question": "date ranges and ordering", "topics": ["date_ranges", "ordering"], "max_chars": 1200 }`
 
 ## Env Vars
-- `GOOGLE_ADS_AUTH_TYPE`: `adc` | `gcloud_cli` | `oauth` | `service_account`
-- `GOOGLE_ADS_DEVELOPER_TOKEN`: required for API calls
-- Optional: `GOOGLE_ADS_CUSTOMER_ID`, `GOOGLE_ADS_LOGIN_CUSTOMER_ID`, `GOOGLE_ADS_API_VERSION` (default `v19`), `GOOGLE_ADS_GCLOUD_USE_CLI`, `GOOGLE_APPLICATION_CREDENTIALS`, `GOOGLE_ADS_ACCESS_TOKEN`
+- Required
+  - `GOOGLE_ADS_DEVELOPER_TOKEN` — your Google Ads developer token
+- Recommended (defaults to adc if omitted)
+  - `GOOGLE_ADS_AUTH_TYPE=adc`
+- Optional
+  - `GOOGLE_APPLICATION_CREDENTIALS` — path to an ADC authorized_user JSON (or place file at `.auth/adc.json`)
+  - `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET` — enables `manage_auth { action: "oauth_login" }` (device flow) to create `.auth/adc.json`
+  - `GOOGLE_ADS_CUSTOMER_ID` — default 10-digit customer ID
+  - `GOOGLE_ADS_LOGIN_CUSTOMER_ID` — MCC login customer ID when acting through a manager
+  - `GOOGLE_ADS_API_VERSION` — default `v19`
+  - `GOOGLE_ADS_ACCESS_TOKEN` — dev/test override token (bypasses ADC)
 
 ## Development
 - `npm run dev` — run from TS via `tsx`
