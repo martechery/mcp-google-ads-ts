@@ -21,8 +21,9 @@ Google Ads MCP server with GCloud/ADC auth.
   - Application form: https://support.google.com/adspolicy/contact/new_token_application
 
 ## Quick Start
-- Install: `npm install && npm run build`
-- Run (dev): `npm run dev` (stdio transport)
+- Package manager: pnpm recommended (pnpm-lock.yaml committed). npm also works.
+- Install: `pnpm install && pnpm build` (or `npm install && npm run build`)
+- Run (dev): `pnpm dev` (stdio transport)
 - Run (built): `node dist/cli.js`
 
 ## MCP Clients
