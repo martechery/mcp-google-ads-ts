@@ -14,11 +14,13 @@
     "dev": "tsx src/cli.ts",
     "start": "node dist/cli.js",
     "typecheck": "tsc --noEmit -p .",
-    "test": "vitest run --reporter=dot",
+    "test": "vitest run --reporter=dot test/unit/*.test.ts test/unit/**/*.test.ts",
+    "test:unit": "vitest run --reporter=dot test/unit/*.test.ts test/unit/**/*.test.ts",
+    "test:integration": "vitest run --reporter=dot test/integration/*.test.ts test/integration/**/*.test.ts",
     "test:watch": "vitest",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix",
-    "smoke": "tsx scripts/smoke.ts"
+    "debug:live": "tsx scripts/live-check.ts"
   },
   "keywords": [
     "mcp",

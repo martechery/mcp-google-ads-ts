@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildPerformanceQuery } from '../src/tools/performance.js';
+import { buildPerformanceQuery } from '../../src/tools/performance.js';
 
 describe('buildPerformanceQuery', () => {
   it('includes fields for account', () => {

@@ -56,7 +56,7 @@ export async function getAccessToken(): Promise<AccessToken> {
           'ADC not configured. GOOGLE_OAUTH_CLIENT_ID/SECRET present. Hint: run manage_auth with { "action": "oauth_login" } to complete OAuth and create an ADC file.'
         );
       }
-      throw new Error('ADC returned no access token. Run: gcloud auth application-default login --scopes=https://www.googleapis.com/auth/adwords');
+      throw new Error('ADC returned no access token. Run: gcloud auth application-default login --scopes=https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/adwords');
     }
     return { token: token.token, type: 'adc', quotaProjectId };
   } catch (e: any) {

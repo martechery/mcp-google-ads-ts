@@ -9,7 +9,7 @@ describe('gaql_help tool', () => {
   afterEach(() => { process.env = OLD_ENV; });
 
   it('returns quick tips when quick_tips=true', async () => {
-    const { registerTools } = await import('../src/server-tools.js');
+    const { registerTools } = await import('../../src/server-tools.js');
     const server = new FakeServer();
     registerTools(server as any);
     const res = await server.tools['gaql_help']({ quick_tips: true });
@@ -21,7 +21,7 @@ describe('gaql_help tool', () => {
     // Mock global fetch to return a tiny HTML doc with relevant content
     // @ts-expect-error: test overrides global.fetch
     global.fetch = vi.fn(async () => ({ ok: true, text: async () => '<h1>Ordering</h1><p>Use ORDER BY field LIMIT 10</p><pre><code>SELECT campaign.id FROM campaign ORDER BY metrics.clicks DESC LIMIT 10</code></pre>' }));
-    const { registerTools } = await import('../src/server-tools.js');
+    const { registerTools } = await import('../../src/server-tools.js');
     const server = new FakeServer();
     registerTools(server as any);
     const res = await server.tools['gaql_help']({ question: 'How do I use ORDER BY and LIMIT?', topics: ['ordering'] });
@@ -33,7 +33,7 @@ describe('gaql_help tool', () => {
   it('includes Sources with local docs in hybrid default (fetch mocked)', async () => {
     // @ts-expect-error: test overrides global.fetch
     global.fetch = vi.fn(async () => ({ ok: true, text: async () => '<html><body><h1>Overview</h1><p>GAQL basics</p></body></html>' }));
-    const { registerTools } = await import('../src/server-tools.js');
+    const { registerTools } = await import('../../src/server-tools.js');
     const server = new FakeServer();
     registerTools(server as any);
     const res = await server.tools['gaql_help']({ include_examples: true });

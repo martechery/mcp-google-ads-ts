@@ -13,7 +13,7 @@ class CaptureServer {
 
 describe('Tool schema guard', () => {
   it('root schema must not use oneOf/allOf/anyOf', async () => {
-    const { registerTools } = await import('../src/server-tools.js');
+    const { registerTools } = await import('../../src/server-tools.js');
     const server = new CaptureServer();
     registerTools(server as any);
     for (const def of server.defs) {
@@ -25,4 +25,3 @@ describe('Tool schema guard', () => {
     }
   });
 });
-

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { executeGaql } from '../src/tools/gaql.js';
+import { executeGaql } from '../../src/tools/gaql.js';
 
 declare const global: any;
 

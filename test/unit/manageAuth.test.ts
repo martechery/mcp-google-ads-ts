@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-vi.mock('../src/tools/accounts.js', () => ({
+vi.mock('../../src/tools/accounts.js', () => ({
   listAccessibleCustomers: vi.fn().mockResolvedValue({ ok: true, status: 200, data: { resourceNames: ['customers/123'] } }),
 }));
 
-vi.mock('../src/utils/exec.js', () => ({
+vi.mock('../../src/utils/exec.js', () => ({
   execCmd: vi.fn(async () => ({ code: 0, stdout: 'ok', stderr: '' })),
 }));
 
@@ -29,7 +29,7 @@ describe('manage_auth tool', () => {
   });
 
   it('status prints scope check and token presence', async () => {
-    const { registerTools } = await import('../src/server-tools.js');
+    const { registerTools } = await import('../../src/server-tools.js');
     const server = new FakeServer();
     registerTools(server as any);
     const res = await server.tools['manage_auth']({ action: 'status' });
@@ -39,7 +39,7 @@ describe('manage_auth tool', () => {
   });
 
   it('switch returns instructions when allow_subprocess=false', async () => {
-    const { registerTools } = await import('../src/server-tools.js');
+    const { registerTools } = await import('../../src/server-tools.js');
     const server = new FakeServer();
     registerTools(server as any);
     const res = await server.tools['manage_auth']({ action: 'switch', config_name: 'work', allow_subprocess: false });
@@ -49,7 +49,7 @@ describe('manage_auth tool', () => {
   });
 
   it('switch executes when allow_subprocess=true', async () => {
-    const { registerTools } = await import('../src/server-tools.js');
+    const { registerTools } = await import('../../src/server-tools.js');
     const server = new FakeServer();
     registerTools(server as any);
     const res = await server.tools['manage_auth']({ action: 'switch', config_name: 'work', allow_subprocess: true });
@@ -59,7 +59,7 @@ describe('manage_auth tool', () => {
   });
 
   it('switch executes by default when allow_subprocess is omitted', async () => {
-    const { registerTools } = await import('../src/server-tools.js');
+    const { registerTools } = await import('../../src/server-tools.js');
     const server = new FakeServer();
     registerTools(server as any);
     const res = await server.tools['manage_auth']({ action: 'switch', config_name: 'work' });
@@ -68,7 +68,7 @@ describe('manage_auth tool', () => {
   });
 
   it('refresh returns instructions without subprocess', async () => {
-    const { registerTools } = await import('../src/server-tools.js');
+    const { registerTools } = await import('../../src/server-tools.js');
     const server = new FakeServer();
     registerTools(server as any);
     const res = await server.tools['manage_auth']({ action: 'refresh', allow_subprocess: false });
@@ -78,7 +78,7 @@ describe('manage_auth tool', () => {
   });
 
   it('refresh runs subprocess and verifies scope', async () => {
-    const { registerTools } = await import('../src/server-tools.js');
+    const { registerTools } = await import('../../src/server-tools.js');
     const server = new FakeServer();
     registerTools(server as any);
     const res = await server.tools['manage_auth']({ action: 'refresh', allow_subprocess: true });
@@ -88,7 +88,7 @@ describe('manage_auth tool', () => {
   });
 
   it('refresh executes by default when allow_subprocess is omitted', async () => {
-    const { registerTools } = await import('../src/server-tools.js');
+    const { registerTools } = await import('../../src/server-tools.js');
     const server = new FakeServer();
     registerTools(server as any);
     const res = await server.tools['manage_auth']({ action: 'refresh' });
@@ -99,10 +99,10 @@ describe('manage_auth tool', () => {
   it('oauth_login uses device flow helper and verifies scope', async () => {
     process.env.GOOGLE_OAUTH_CLIENT_ID = 'id';
     process.env.GOOGLE_OAUTH_CLIENT_SECRET = 'secret';
-    vi.mock('../src/tools/oauth.js', () => ({
+    vi.mock('../../src/tools/oauth.js', () => ({
       runDeviceOAuthForAds: vi.fn(async () => ({ path: '/tmp/adc.json' })),
     }));
-    const { registerTools } = await import('../src/server-tools.js');
+    const { registerTools } = await import('../../src/server-tools.js');
     const server = new FakeServer();
     registerTools(server as any);
     // ensure list accounts is OK (already mocked at top)

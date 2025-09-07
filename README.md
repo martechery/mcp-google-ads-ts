@@ -10,7 +10,7 @@ Google Ads MCP server with GCloud/ADC auth.
 - [Tools](#tools)
 - [Env Vars](#env-vars)
 - [Development](#development)
-- [Smoke Test](#smoke-test)
+- [Testing](#testing)
 - [License](#license)
 
 ## Prerequisites
@@ -66,7 +66,7 @@ Google Ads MCP server with GCloud/ADC auth.
 ## Auth Options
 - Preferred: ADC via gcloud CLI
   - Install gcloud and run:
-    - `gcloud auth application-default login --scopes=https://www.googleapis.com/auth/adwords`
+    - `gcloud auth application-default login --scopes=https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/adwords`
 - ADC is the default auth path; no special env flag required.
   - Note: If you already have an ADC file (authorized_user JSON), point to it with `GOOGLE_APPLICATION_CREDENTIALS=/path/to/adc.json`.
 - Optional CLI token fallback: set `GOOGLE_ADS_GCLOUD_USE_CLI=true`
@@ -208,11 +208,14 @@ Note: You don’t run tool payloads yourself — your MCP client’s LLM calls t
 - `npm start` — run compiled CLI
 - `npm run typecheck`, `npm run lint`, `npm run test`
 
-## Smoke Test (real API)
-- Requirements: ADC login + `GOOGLE_ADS_DEVELOPER_TOKEN`
-- Commands:
-  - `npm run smoke` — lists accounts
-  - `SMOKE_CUSTOMER_ID=1234567890 npm run smoke` — plus sample performance
+## Testing
+- Unit tests (fast, mocked):
+  - `pnpm test` or `pnpm run test:unit`
+- Integration tests (real API, read-only):
+  - Prereqs: ADC login (`gcloud auth application-default login --scopes=https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/adwords`) and `GOOGLE_ADS_DEVELOPER_TOKEN` set
+  - Optional: `GOOGLE_ADS_MANAGER_ACCOUNT_ID` (MCC login-customer), `GOOGLE_ADS_ACCOUNT_ID` (target account)
+  - Run: `pnpm run test:integration`
+  - Notes: Queries use small `LIMIT`s and short date ranges to minimize quota usage
 
 ## License
 MIT

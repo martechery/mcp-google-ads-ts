@@ -56,7 +56,7 @@ export function registerTools(server: ToolServer) {
   addTool(
     server,
     "manage_auth",
-    "Manage Google Ads auth: status; switch/refresh via gcloud; optional oauth_login using env client id/secret to create ADC file.",
+    "Manage Google Ads auth: status; switch/refresh via gcloud; set_project/set_quota_project; optional oauth_login using env client id/secret to create ADC file.",
     ManageAuthZ,
     async (input: any) => {
       const action = (input?.action || 'status').toLowerCase();
@@ -98,6 +98,20 @@ export function registerTools(server: ToolServer) {
           lines.push(`  Auth type: ${type}`);
           lines.push(`  Token present: ${token ? 'yes' : 'no'}`);
           lines.push(`  Quota project: ${quotaProjectId || '(none)'}`);
+          // Token info (scopes/audience)
+          try {
+            const infoRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(token)}`);
+            if (infoRes.ok) {
+              const info: any = await infoRes.json();
+              if (info.scope) lines.push(`  Token scopes: ${info.scope}`);
+              if (info.aud) lines.push(`  Token audience: ${info.aud}`);
+              if (info.azp) lines.push(`  Token azp: ${info.azp}`);
+            } else {
+              lines.push('  Token info: (unavailable)');
+            }
+          } catch {
+            lines.push('  Token info: (error fetching)');
+          }
           // Probe scope by hitting listAccessibleCustomers
           const resp = await listAccessibleCustomers();
           if (resp.ok) {
@@ -215,13 +229,57 @@ export function registerTools(server: ToolServer) {
           stdout ? `stdout:\n${stdout}` : '',
           stderr ? `stderr:\n${stderr}` : '',
           'Next: refresh ADC credentials to ensure Ads scope:',
-          '  gcloud auth application-default login --scopes=https://www.googleapis.com/auth/adwords',
+          '  gcloud auth application-default login --scopes=https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/adwords',
         ].filter(Boolean);
         return { content: [{ type: 'text', text: lines.join('\n') }] };
       }
 
+      if (action === 'set_project') {
+        const projectId = (input?.project_id || input?.project || '').trim();
+        const allowSub = input?.allow_subprocess !== false;
+        if (!projectId) return { content: [{ type: 'text', text: "Missing 'project_id'. Example: { action: 'set_project', project_id: 'my-project' }" }] };
+        const cmd = `gcloud config set project ${projectId}`;
+        if (!allowSub) {
+          const text = [
+            'Planned action: set default gcloud project',
+            `Command: ${cmd}`,
+          ].join('\n');
+          return { content: [{ type: 'text', text }] };
+        }
+        const { execCmd } = await import('./utils/exec.js');
+        const { code, stdout, stderr } = await execCmd('gcloud', ['config', 'set', 'project', projectId]);
+        const text = [
+          `gcloud set project exit: ${code}`,
+          stdout ? `stdout:\n${stdout}` : '',
+          stderr ? `stderr:\n${stderr}` : '',
+        ].filter(Boolean).join('\n');
+        return { content: [{ type: 'text', text }] };
+      }
+
+      if (action === 'set_quota_project') {
+        const projectId = (input?.project_id || input?.project || '').trim();
+        const allowSub = input?.allow_subprocess !== false;
+        if (!projectId) return { content: [{ type: 'text', text: "Missing 'project_id'. Example: { action: 'set_quota_project', project_id: 'my-project' }" }] };
+        const cmd = `gcloud auth application-default set-quota-project ${projectId}`;
+        if (!allowSub) {
+          const text = [
+            'Planned action: set ADC quota project',
+            `Command: ${cmd}`,
+          ].join('\n');
+          return { content: [{ type: 'text', text }] };
+        }
+        const { execCmd } = await import('./utils/exec.js');
+        const { code, stdout, stderr } = await execCmd('gcloud', ['auth', 'application-default', 'set-quota-project', projectId]);
+        const text = [
+          `gcloud set-quota-project exit: ${code}`,
+          stdout ? `stdout:\n${stdout}` : '',
+          stderr ? `stderr:\n${stderr}` : '',
+        ].filter(Boolean).join('\n');
+        return { content: [{ type: 'text', text }] };
+      }
+
       if (action === 'refresh') {
-        const loginCmd = 'gcloud auth application-default login --scopes=https://www.googleapis.com/auth/adwords';
+        const loginCmd = 'gcloud auth application-default login --scopes=https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/adwords';
         if (!allowSub) {
           const text = [
             'Planned action: refresh ADC credentials for Ads scope',

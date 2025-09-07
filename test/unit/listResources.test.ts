@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-vi.mock('../src/tools/fields.js', () => ({
+vi.mock('../../src/tools/fields.js', () => ({
   searchGoogleAdsFields: vi.fn(async () => ({ ok: true, status: 200, data: { results: [
     { googleAdsField: { name: 'ad_group', category: 'RESOURCE', selectable: true } },
     { googleAdsField: { name: 'campaign', category: 'RESOURCE', selectable: true } },
@@ -26,7 +26,7 @@ describe('list_resources tool', () => {
   afterEach(() => { process.env = OLD_ENV; });
 
   it('prints a table of resources', async () => {
-    const { registerTools } = await import('../src/server-tools.js');
+    const { registerTools } = await import('../../src/server-tools.js');
     const server = new FakeServer();
     registerTools(server as any);
     const res = await server.tools['list_resources']({});
@@ -37,10 +37,10 @@ describe('list_resources tool', () => {
   });
 
   it('adds hint on error mapping (scope insufficient)', async () => {
-    vi.doMock('../src/tools/fields.js', () => ({
+    vi.doMock('../../src/tools/fields.js', () => ({
       searchGoogleAdsFields: vi.fn(async () => ({ ok: false, status: 403, errorText: 'ACCESS_TOKEN_SCOPE_INSUFFICIENT' })),
     }));
-    const { registerTools } = await import('../src/server-tools.js');
+    const { registerTools } = await import('../../src/server-tools.js');
     const server = new FakeServer();
     registerTools(server as any);
     const res = await server.tools['list_resources']({});

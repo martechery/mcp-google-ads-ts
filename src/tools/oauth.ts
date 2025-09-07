@@ -13,7 +13,10 @@ type TokenResponse = {
   token_type: string;
 };
 
-const ADS_SCOPE = 'https://www.googleapis.com/auth/adwords';
+const ADS_SCOPES = [
+  'https://www.googleapis.com/auth/cloud-platform',
+  'https://www.googleapis.com/auth/adwords',
+];
 
 export async function runDeviceOAuthForAds(opts: { clientId: string; clientSecret: string }): Promise<{ path: string }>
 {
@@ -36,7 +39,7 @@ export async function runDeviceOAuthForAds(opts: { clientId: string; clientSecre
 }
 
 async function startDeviceFlow(clientId: string): Promise<DeviceCodeResponse> {
-  const body = new URLSearchParams({ client_id: clientId, scope: ADS_SCOPE });
+  const body = new URLSearchParams({ client_id: clientId, scope: ADS_SCOPES.join(' ') });
   const res = await fetch('https://oauth2.googleapis.com/device/code', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },

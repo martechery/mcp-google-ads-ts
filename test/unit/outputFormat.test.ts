@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-vi.mock('../src/tools/gaql.js', () => ({
+vi.mock('../../src/tools/gaql.js', () => ({
   executeGaql: vi.fn(),
 }));
 
-vi.mock('../src/tools/fields.js', () => ({
+vi.mock('../../src/tools/fields.js', () => ({
   searchGoogleAdsFields: vi.fn(),
 }));
 
@@ -25,9 +25,9 @@ describe('output formats', () => {
   afterEach(() => { process.env = OLD_ENV; });
 
   it('execute_gaql_query outputs JSON', async () => {
-    const { executeGaql } = await import('../src/tools/gaql.js');
+    const { executeGaql } = await import('../../src/tools/gaql.js');
     (executeGaql as any).mockResolvedValue({ ok: true, status: 200, data: { results: [ { x: 1 } ] } });
-    const { registerTools } = await import('../src/server-tools.js');
+    const { registerTools } = await import('../../src/server-tools.js');
     const server = new FakeServer();
     registerTools(server as any);
     const res = await server.tools['execute_gaql_query']({ customer_id: '1234567890', query: 'SELECT 1', output_format: 'json' });
@@ -38,9 +38,9 @@ describe('output formats', () => {
   });
 
   it('list_resources outputs CSV', async () => {
-    const { searchGoogleAdsFields } = await import('../src/tools/fields.js');
+    const { searchGoogleAdsFields } = await import('../../src/tools/fields.js');
     (searchGoogleAdsFields as any).mockResolvedValue({ ok: true, status: 200, data: { results: [ { googleAdsField: { name: 'campaign', category: 'RESOURCE', selectable: true } } ] } });
-    const { registerTools } = await import('../src/server-tools.js');
+    const { registerTools } = await import('../../src/server-tools.js');
     const server = new FakeServer();
     registerTools(server as any);
     const res = await server.tools['list_resources']({ output_format: 'csv' });
@@ -49,4 +49,3 @@ describe('output formats', () => {
     expect(text).toContain('campaign');
   });
 });
-

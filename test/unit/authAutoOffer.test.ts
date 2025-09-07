@@ -22,7 +22,7 @@ describe('auth auto-offer oauth_login', () => {
         getClient() { return { getAccessToken: async () => ({ token: null }) }; }
       },
     }));
-    const mod = await import('../src/auth.js');
+    const mod = await import('../../src/auth.js');
     await expect(mod.getAccessToken()).rejects.toThrow(/oauth_login/);
   });
 });

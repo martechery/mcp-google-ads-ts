@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildAdsHeaders } from '../src/headers.js';
+import { buildAdsHeaders } from '../../src/headers.js';
 
 describe('buildAdsHeaders', () => {
   it('builds required headers', () => {
@@ -23,4 +23,3 @@ describe('buildAdsHeaders', () => {
     expect(headers['x-goog-user-project']).toBe('my-project');
   });
 });
-

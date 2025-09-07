@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { listAccessibleCustomers } from '../src/tools/accounts.js';
+import { listAccessibleCustomers } from '../../src/tools/accounts.js';
 
 declare const global: any;
 
@@ -33,4 +33,3 @@ describe('listAccessibleCustomers', () => {
     expect(init.headers.Authorization).toBe('Bearer tkn');
   });
 });
-
