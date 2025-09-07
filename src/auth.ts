@@ -47,13 +47,29 @@ export async function getAccessToken(): Promise<AccessToken> {
     const auth = new GoogleAuth({
       scopes: ['https://www.googleapis.com/auth/adwords'],
     });
-    const client = await auth.getClient();
-    const token = await client.getAccessToken();
-    const quotaProjectId = (auth as any).quotaProjectId || process.env.GOOGLE_ADS_QUOTA_PROJECT_ID || undefined;
-    if (!token || !token.token) {
-      throw new Error('ADC returned no access token. Run: gcloud auth application-default login --scopes=https://www.googleapis.com/auth/adwords');
+    try {
+      const client = await auth.getClient();
+      const token = await client.getAccessToken();
+      const quotaProjectId = (auth as any).quotaProjectId || process.env.GOOGLE_ADS_QUOTA_PROJECT_ID || undefined;
+      if (!token || !token.token) {
+        const hasClientCreds = !!process.env.GOOGLE_OAUTH_CLIENT_ID && !!process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+        if (hasClientCreds) {
+          throw new Error(
+            'ADC not configured. GOOGLE_OAUTH_CLIENT_ID/SECRET present. Hint: run manage_auth with { "action": "oauth_login" } to complete OAuth and create an ADC file.'
+          );
+        }
+        throw new Error('ADC returned no access token. Run: gcloud auth application-default login --scopes=https://www.googleapis.com/auth/adwords');
+      }
+      return { token: token.token, type: 'adc', quotaProjectId };
+    } catch (e: any) {
+      const hasClientCreds = !!process.env.GOOGLE_OAUTH_CLIENT_ID && !!process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+      if (hasClientCreds) {
+        throw new Error(
+          'ADC not configured. GOOGLE_OAUTH_CLIENT_ID/SECRET present. Hint: run manage_auth with { "action": "oauth_login" } to complete OAuth and create an ADC file.'
+        );
+      }
+      throw e;
     }
-    return { token: token.token, type: 'adc', quotaProjectId };
   }
 
   throw new Error('Only env or ADC auth supported currently. Set GOOGLE_ADS_ACCESS_TOKEN or GOOGLE_ADS_AUTH_TYPE=adc');
