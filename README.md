@@ -1,6 +1,6 @@
-# mcp-google-ads-gcloud-auth (TypeScript)
+# Google Ads MCP
 
-Google Ads MCP server with GCloud/ADC auth. Minimal, fast, and ready for Claude/other MCP clients.
+Google Ads MCP server with GCloud/ADC auth.
 
 ## Contents
 - [Prerequisites](#prerequisites)
@@ -37,7 +37,7 @@ Google Ads MCP server with GCloud/ADC auth. Minimal, fast, and ready for Claude/
       "env": {
         "GOOGLE_ADS_AUTH_TYPE": "adc",
         "GOOGLE_ADS_DEVELOPER_TOKEN": "YOUR_DEV_TOKEN",
-        "GOOGLE_ADS_CUSTOMER_ID": "optional-10-digit-id"
+        "GOOGLE_ADS_ACCOUNT_ID": "optional-10-digit-id"
       }
     }
   }
@@ -57,7 +57,7 @@ Google Ads MCP server with GCloud/ADC auth. Minimal, fast, and ready for Claude/
       "env": {
         "GOOGLE_ADS_AUTH_TYPE": "adc",
         "GOOGLE_ADS_DEVELOPER_TOKEN": "YOUR_DEV_TOKEN",
-        "GOOGLE_ADS_CUSTOMER_ID": "optional-10-digit-id"
+        "GOOGLE_ADS_ACCOUNT_ID": "optional-10-digit-id"
       }
     }
   }
@@ -83,7 +83,7 @@ Google Ads MCP server with GCloud/ADC auth. Minimal, fast, and ready for Claude/
 - Set env vars to your Desktop-app OAuth client:
   - `GOOGLE_OAUTH_CLIENT_ID=...`
   - `GOOGLE_OAUTH_CLIENT_SECRET=...`
-- Run the tool action:
+- Prompt your LLM to run the tool action:
   - `manage_auth` with `{ "action": "oauth_login" }`
 - This will:
   - Prompt you to open a URL and enter a code.
@@ -92,6 +92,8 @@ Google Ads MCP server with GCloud/ADC auth. Minimal, fast, and ready for Claude/
   - Next startups auto-detect `.auth/adc.json`, so you usually don’t need to export anything.
 
 ## Tools
+
+Note: You don’t run tool payloads yourself — your MCP client’s LLM calls tools. Use natural prompts (for example: “Check my Google Ads auth status”) and the client will invoke the right tool. JSON shown below is for integrators building custom clients.
 
 - manage_auth
   - Purpose: Inspect and manage auth. Always safe to run with default action `status`.
@@ -104,6 +106,12 @@ Google Ads MCP server with GCloud/ADC auth. Minimal, fast, and ready for Claude/
   - Example (status): `{ "action": "status" }`
   - Example (print steps, don’t run): `{ "action": "refresh" }`
   - Example (execute): `{ "action": "switch", "config_name": "work", "allow_subprocess": true }`
+
+  - How to ask your MCP client:
+    - “Check Google Ads auth status.”
+    - “Refresh ADC auth for Google Ads (open login).”
+    - “Switch gcloud config to ‘work’ and refresh ADC.”
+    - “Create local ADC via OAuth using my client ID/secret.”
 
 - list_resources
   - Purpose: Discover GAQL FROM resources or list accessible accounts.
@@ -172,8 +180,8 @@ Google Ads MCP server with GCloud/ADC auth. Minimal, fast, and ready for Claude/
 - Optional
   - `GOOGLE_APPLICATION_CREDENTIALS` — path to an ADC authorized_user JSON (or place file at `.auth/adc.json`)
   - `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET` — enables `manage_auth { action: "oauth_login" }` (device flow) to create `.auth/adc.json`
-  - `GOOGLE_ADS_CUSTOMER_ID` — default 10-digit customer ID
-  - `GOOGLE_ADS_LOGIN_CUSTOMER_ID` — MCC login customer ID when acting through a manager
+  - `GOOGLE_ADS_ACCOUNT_ID` — default 10-digit account ID
+  - `GOOGLE_ADS_MANAGER_ACCOUNT_ID` — manager account ID (MCC) when acting through a manager
   - `GOOGLE_ADS_API_VERSION` — default `v19`
   - `GOOGLE_ADS_ACCESS_TOKEN` — dev/test override token (bypasses ADC)
 
