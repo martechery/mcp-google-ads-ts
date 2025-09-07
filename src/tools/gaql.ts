@@ -21,7 +21,7 @@ export type GaqlResponse = {
 export async function executeGaql({ customerId, query, pageSize, pageToken }: ExecuteGaqlParams): Promise<GaqlResponse> {
   const { token, quotaProjectId } = await getAccessToken();
   const developerToken = process.env.GOOGLE_ADS_DEVELOPER_TOKEN || '';
-  const loginCustomerId = process.env.GOOGLE_ADS_MANAGER_ACCOUNT_ID || process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID;
+  const loginCustomerId = process.env.GOOGLE_ADS_MANAGER_ACCOUNT_ID;
 
   const headers = buildAdsHeaders({
     accessToken: token,

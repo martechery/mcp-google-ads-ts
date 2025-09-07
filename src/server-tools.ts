@@ -277,6 +277,10 @@ export function registerTools(server: ToolServer) {
     async (_input: any) => {
       const input = normalizeArgs(_input || {});
       if (!input.customer_id) {
+        const envAccount = process.env.GOOGLE_ADS_ACCOUNT_ID;
+        if (envAccount) {
+          input.customer_id = envAccount;
+        } else {
         const res = await listAccessibleCustomers();
         if (!res.ok) {
           const hint = mapAdsErrorMsg(res.status, res.errorText || '');
@@ -296,6 +300,7 @@ export function registerTools(server: ToolServer) {
           table,
         ];
         return { content: [{ type: 'text', text: lines.join('\n') }] };
+        }
       }
       const auto = !!input.auto_paginate;
       const maxPages = Math.max(1, Math.min(20, Number(input.max_pages ?? 5)));
@@ -359,6 +364,10 @@ export function registerTools(server: ToolServer) {
     async (_input: any) => {
       const input = normalizeArgs(_input || {});
       if (!input.customer_id) {
+        const envAccount = process.env.GOOGLE_ADS_ACCOUNT_ID;
+        if (envAccount) {
+          input.customer_id = envAccount;
+        } else {
         const res = await listAccessibleCustomers();
         if (!res.ok) {
           const hint = mapAdsErrorMsg(res.status, res.errorText || '');
@@ -378,6 +387,7 @@ export function registerTools(server: ToolServer) {
           table,
         ];
         return { content: [{ type: 'text', text: lines.join('\n') }] };
+        }
       }
       const days = Math.max(1, Math.min(365, Number(input.days ?? 30)));
       const limit = Math.max(1, Math.min(1000, Number(input.limit ?? 50)));
