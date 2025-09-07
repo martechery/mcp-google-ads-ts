@@ -70,11 +70,77 @@ Auth Options
 - Optional CLI token fallback: set `GOOGLE_ADS_GCLOUD_USE_CLI=true`
 - OAuth/Service Account remain supported via `GOOGLE_ADS_CREDENTIALS_PATH`.
 
-Tools (high level)
-- `manage_auth`: environment summary, ADC probe, optional `gcloud` switch/refresh hints.
-- `list_resources`: GAQL FROM-able resources or accessible accounts.
-- `execute_gaql_query`: run GAQL with pagination.
-- `get_performance`: quick performance by level with filters.
+Tools
+
+- manage_auth
+  - Purpose: Inspect and manage auth. Always safe to run with default action `status`.
+  - Inputs:
+    - `action`: `status` | `switch` | `refresh` (default `status`)
+    - `config_name`: gcloud config name (for `switch`)
+    - `allow_subprocess`: boolean (default `false`). When `true`, runs gcloud commands.
+  - Output: Text summary including env values, ADC probe, Ads scope check, accessible accounts count. For `switch`/`refresh`, prints planned or executed `gcloud` steps.
+  - Example (status): `{ "action": "status" }`
+  - Example (print steps, don’t run): `{ "action": "refresh" }`
+  - Example (execute): `{ "action": "switch", "config_name": "work", "allow_subprocess": true }`
+
+- list_resources
+  - Purpose: Discover GAQL FROM resources or list accessible accounts.
+  - Inputs:
+    - `kind`: `resources` | `accounts` (default `resources`)
+    - `filter`: substring for resource names (when `resources`)
+    - `limit`: 1–1000 (default 500)
+    - `output_format`: `table` | `json` | `csv` (default `table`)
+  - Notes: Uses `google_ads_field` metadata for resources (no FROM clause). Accounts come from `customers:listAccessibleCustomers`.
+  - Example (resources): `{ "kind": "resources", "filter": "campaign", "limit": 50 }`
+  - Example (accounts): `{ "kind": "accounts", "output_format": "table" }`
+
+- execute_gaql_query
+  - Purpose: Run raw GAQL with optional pagination.
+  - Inputs:
+    - `customer_id` (optional). If omitted, tool prompts you to pick one from accessible accounts.
+    - `query`: GAQL string
+    - Paging: `page_size`, `page_token`, `auto_paginate` (bool), `max_pages` (1–20)
+    - `output_format`: `table` | `json` | `csv` (default `table`)
+  - Output: Table/JSON/CSV of results. Shows `Next Page Token` when not auto-paginating.
+  - Example:
+    ```json
+    {
+      "customer_id": "1234567890",
+      "query": "SELECT campaign.id, metrics.clicks FROM campaign WHERE segments.date DURING LAST_30_DAYS LIMIT 10",
+      "output_format": "table"
+    }
+    ```
+
+- get_performance
+  - Purpose: Quick performance by level with common filters.
+  - Inputs:
+    - `customer_id` (optional). If omitted, tool lists accessible accounts to choose from.
+    - `level`: `account` | `campaign` | `ad_group` | `ad`
+    - `days`: 1–365 (default 30)
+    - `limit`: 1–1000 (default 50)
+    - Paging: `page_size`, `page_token`, `auto_paginate`, `max_pages`
+    - `output_format`: `table` | `json` | `csv` (default `table`)
+    - `filters` (optional):
+      - `status` (e.g., ENABLED)
+      - `nameContains` (entity name contains)
+      - `campaignNameContains` (ignored at `account` level)
+      - `minClicks`, `minImpressions`
+  - Output: Includes `customer.currency_code` and computed `metrics.cost_units`.
+  - Examples:
+    - Account (last 30 days): `{ "customer_id": "1234567890", "level": "account" }`
+    - Campaigns filtered: `{ "level": "campaign", "filters": { "status": "ENABLED", "minClicks": 10 } }`
+
+- gaql_help
+  - Purpose: Pull targeted GAQL guidance from Google docs or return an offline cheat sheet.
+  - Inputs:
+    - `question` (free text)
+    - `topics`: subset of `[overview, grammar, structure, date_ranges, case_sensitivity, ordering, cookbook]`
+    - `quick_tips`: boolean (default `false`). When `true`, returns an offline tips list (no network).
+    - `include_examples`: boolean (best-effort, subject to `max_chars`)
+    - `max_chars`: 400–4000 (default 1600)
+  - Examples:
+    - Offline: `{ "quick_tips": true }`
+    - Focused: `{ "question": "date ranges and ordering", "topics": ["date_ranges", "ordering"], "max_chars": 1200 }`
 
 Env Vars
 - `GOOGLE_ADS_AUTH_TYPE`: `adc` | `gcloud_cli` | `oauth` | `service_account`
