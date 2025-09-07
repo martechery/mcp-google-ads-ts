@@ -60,7 +60,18 @@ export function registerTools(server: ToolServer) {
     ManageAuthZ,
     async (input: any) => {
       const action = (input?.action || 'status').toLowerCase();
-      const allowSub = !!input?.allow_subprocess;
+      const defaultAllow = String(process.env.GOOGLE_ADS_MANAGE_AUTH_ALLOW_SUBPROCESS_DEFAULT || '').toLowerCase() === 'true';
+      const allowSub = defaultAllow || !!input?.allow_subprocess;
+
+      async function isGcloudAvailable(): Promise<boolean> {
+        try {
+          const { execCmd } = await import('./utils/exec.js');
+          const res = await execCmd('gcloud', ['--version'], { timeoutMs: 5_000 });
+          return res.code === 0;
+        } catch {
+          return false;
+        }
+      }
 
       if (action === 'status') {
         const authType = process.env.GOOGLE_ADS_AUTH_TYPE || "(not set)";
@@ -123,6 +134,14 @@ export function registerTools(server: ToolServer) {
           ].join('\n');
           return { content: [{ type: 'text', text }] };
         }
+        if (!(await isGcloudAvailable())) {
+          const text = [
+            'gcloud not found on PATH. Cannot execute switch automatically.',
+            `Please run manually: ${cmd}`,
+            'Install: https://cloud.google.com/sdk/docs/install',
+          ].join('\n');
+          return { content: [{ type: 'text', text }] };
+        }
         const { execCmd } = await import('./utils/exec.js');
         const { code, stdout, stderr } = await execCmd('gcloud', ['config', 'configurations', 'activate', name]);
         const lines = [
@@ -142,6 +161,14 @@ export function registerTools(server: ToolServer) {
             'Planned action: refresh ADC credentials for Ads scope',
             `Command: ${loginCmd}`,
             'Tip: Re-run with allow_subprocess=true to execute from MCP.',
+          ].join('\n');
+          return { content: [{ type: 'text', text }] };
+        }
+        if (!(await isGcloudAvailable())) {
+          const text = [
+            'gcloud not found on PATH. Cannot execute refresh automatically.',
+            `Please run manually: ${loginCmd}`,
+            'Install: https://cloud.google.com/sdk/docs/install',
           ].join('\n');
           return { content: [{ type: 'text', text }] };
         }

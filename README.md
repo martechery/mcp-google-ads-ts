@@ -78,8 +78,9 @@ Google Ads MCP server with GCloud/ADC auth. Minimal, fast, and ready for Claude/
   - Inputs:
     - `action`: `status` | `switch` | `refresh` (default `status`)
     - `config_name`: gcloud config name (for `switch`)
-    - `allow_subprocess`: boolean (default `false`). When `true`, runs gcloud commands.
+    - `allow_subprocess`: boolean. When `true`, runs gcloud commands. You can default this on by setting `GOOGLE_ADS_MANAGE_AUTH_ALLOW_SUBPROCESS_DEFAULT=true`.
   - Output: Text summary including env values, ADC probe, Ads scope check, accessible accounts count. For `switch`/`refresh`, prints planned or executed `gcloud` steps.
+  - Behavior: If gcloud is not found on PATH, the tool falls back to printing the exact commands and an install link.
   - Example (status): `{ "action": "status" }`
   - Example (print steps, don’t run): `{ "action": "refresh" }`
   - Example (execute): `{ "action": "switch", "config_name": "work", "allow_subprocess": true }`
