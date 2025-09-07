@@ -75,11 +75,9 @@ export function registerTools(server: ToolServer) {
 
       if (action === 'status') {
         const authType = process.env.GOOGLE_ADS_AUTH_TYPE || "(not set)";
-        const useCli = process.env.GOOGLE_ADS_GCLOUD_USE_CLI || "false";
-        const credsPath = process.env.GOOGLE_ADS_CREDENTIALS_PATH || "(not set)";
-        const customerId = process.env.GOOGLE_ADS_CUSTOMER_ID || "(not set)";
+        const accountId = process.env.GOOGLE_ADS_ACCOUNT_ID || process.env.GOOGLE_ADS_CUSTOMER_ID || "(not set)";
+        const managerAccountId = process.env.GOOGLE_ADS_MANAGER_ACCOUNT_ID || process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID || "(not set)";
         const developerToken = process.env.GOOGLE_ADS_DEVELOPER_TOKEN || "(not set)";
-        const loginCustomerId = process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID || "(not set)";
         const gacEnv = process.env.GOOGLE_APPLICATION_CREDENTIALS || "(not set)";
 
         const lines: string[] = [
@@ -87,16 +85,13 @@ export function registerTools(server: ToolServer) {
           '=======================',
           'Environment:',
           `  GOOGLE_ADS_AUTH_TYPE: ${authType}`,
-          `  GOOGLE_ADS_GCLOUD_USE_CLI: ${useCli}`,
-          `  GOOGLE_ADS_CREDENTIALS_PATH: ${credsPath}`,
           `  GOOGLE_APPLICATION_CREDENTIALS: ${gacEnv}`,
-          `  GOOGLE_ADS_CUSTOMER_ID: ${customerId}`,
-          `  GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${loginCustomerId}`,
+          `  GOOGLE_ADS_ACCOUNT_ID: ${accountId}`,
+          `  GOOGLE_ADS_MANAGER_ACCOUNT_ID: ${managerAccountId}`,
           `  GOOGLE_ADS_DEVELOPER_TOKEN: ${developerToken ? "(set)" : "(not set)"}`,
           'Notes:',
-          "- For 'gcloud/adc' mode, credentials path is not required.",
-          '- Prefer ADC over CLI fallback for stability and auto-refresh.',
-          '- oauth and service_account modes remain available for compatibility.',
+          "- ADC via gcloud is preferred for stability and auto-refresh.",
+          '- You can also use an existing authorized_user JSON via GOOGLE_APPLICATION_CREDENTIALS.',
           '',
           'Probes:',
         ];
