@@ -36,7 +36,6 @@ Google Ads MCP server with GCloud/ADC auth.
       "command": "node",
       "args": ["/absolute/path/to/dist/cli.js"],
       "env": {
-        "GOOGLE_ADS_AUTH_TYPE": "adc",
         "GOOGLE_ADS_DEVELOPER_TOKEN": "YOUR_DEV_TOKEN",
         "GOOGLE_ADS_ACCOUNT_ID": "optional-10-digit-id"
       }
@@ -56,7 +55,6 @@ Google Ads MCP server with GCloud/ADC auth.
       "command": "node",
       "args": ["/absolute/path/to/dist/cli.js"],
       "env": {
-        "GOOGLE_ADS_AUTH_TYPE": "adc",
         "GOOGLE_ADS_DEVELOPER_TOKEN": "YOUR_DEV_TOKEN",
         "GOOGLE_ADS_ACCOUNT_ID": "optional-10-digit-id"
       }
@@ -69,7 +67,7 @@ Google Ads MCP server with GCloud/ADC auth.
 - Preferred: ADC via gcloud CLI
   - Install gcloud and run:
     - `gcloud auth application-default login --scopes=https://www.googleapis.com/auth/adwords`
-  - Set `GOOGLE_ADS_AUTH_TYPE=adc`
+- ADC is the default auth path; no special env flag required.
   - Note: If you already have an ADC file (authorized_user JSON), point to it with `GOOGLE_APPLICATION_CREDENTIALS=/path/to/adc.json`.
 - Optional CLI token fallback: set `GOOGLE_ADS_GCLOUD_USE_CLI=true`
 - Other modes (raw OAuth client JSON, service accounts) are not supported here. Google Ads requires user OAuth; service accounts are generally not accepted.
@@ -194,8 +192,7 @@ Note: You don’t run tool payloads yourself — your MCP client’s LLM calls t
 ## Env Vars
 - Required
   - `GOOGLE_ADS_DEVELOPER_TOKEN` — your Google Ads developer token
-- Recommended (defaults to adc if omitted)
-  - `GOOGLE_ADS_AUTH_TYPE=adc`
+- Recommended
 - Optional
   - `GOOGLE_APPLICATION_CREDENTIALS` — path to an ADC authorized_user JSON (or place file at `.auth/adc.json`)
   - `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET` — enables `manage_auth { action: "oauth_login" }` (device flow) to create `.auth/adc.json`

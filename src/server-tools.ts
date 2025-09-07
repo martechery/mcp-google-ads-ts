@@ -74,7 +74,6 @@ export function registerTools(server: ToolServer) {
       }
 
       if (action === 'status') {
-        const authType = process.env.GOOGLE_ADS_AUTH_TYPE || "(not set)";
         const accountId = process.env.GOOGLE_ADS_ACCOUNT_ID || process.env.GOOGLE_ADS_CUSTOMER_ID || "(not set)";
         const managerAccountId = process.env.GOOGLE_ADS_MANAGER_ACCOUNT_ID || process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID || "(not set)";
         const developerToken = process.env.GOOGLE_ADS_DEVELOPER_TOKEN || "(not set)";
@@ -84,7 +83,6 @@ export function registerTools(server: ToolServer) {
           'Google Ads Auth Status',
           '=======================',
           'Environment:',
-          `  GOOGLE_ADS_AUTH_TYPE: ${authType}`,
           `  GOOGLE_APPLICATION_CREDENTIALS: ${gacEnv}`,
           `  GOOGLE_ADS_ACCOUNT_ID: ${accountId}`,
           `  GOOGLE_ADS_MANAGER_ACCOUNT_ID: ${managerAccountId}`,
