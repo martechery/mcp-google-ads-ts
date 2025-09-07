@@ -20,6 +20,27 @@ export async function getAccessToken(): Promise<AccessToken> {
   }
 
   const authType = (process.env.GOOGLE_ADS_AUTH_TYPE || 'adc').toLowerCase();
+  // Fallbacks: if GOOGLE_APPLICATION_CREDENTIALS is not set, check for local ADC file and well-known path
+  if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+    try {
+      const fs = await import('node:fs');
+      const path = await import('node:path');
+      const os = await import('node:os');
+      const localPath = path.resolve(process.cwd(), '.auth', 'adc.json');
+      const exists = (p?: string) => !!p && fs.existsSync(p);
+      let wellKnown: string | undefined;
+      if (process.platform === 'win32') {
+        const appData = process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming');
+        wellKnown = path.join(appData, 'gcloud', 'application_default_credentials.json');
+      } else {
+        wellKnown = path.join(os.homedir(), '.config', 'gcloud', 'application_default_credentials.json');
+      }
+      if (exists(localPath)) process.env.GOOGLE_APPLICATION_CREDENTIALS = localPath;
+      else if (exists(wellKnown)) process.env.GOOGLE_APPLICATION_CREDENTIALS = wellKnown;
+    } catch {
+      // ignore fs errors
+    }
+  }
   if (authType === 'adc' || authType === 'gcloud') {
     // Attempt Application Default Credentials via google-auth-library
     const { GoogleAuth } = await import('google-auth-library');

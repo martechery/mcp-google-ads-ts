@@ -56,7 +56,7 @@ export function registerTools(server: ToolServer) {
   addTool(
     server,
     "manage_auth",
-    "Manage Google Ads auth: status (implemented), switch/refresh (behind allow_subprocess flag).",
+    "Manage Google Ads auth: status; switch/refresh via gcloud; optional oauth_login using env client id/secret to create ADC file.",
     ManageAuthZ,
     async (input: any) => {
       const action = (input?.action || 'status').toLowerCase();
@@ -120,7 +120,7 @@ export function registerTools(server: ToolServer) {
           lines.push(`  Error determining auth status: ${e?.message || String(e)}`);
         }
 
-        // ADC file discovery hints
+        // ADC file discovery hints (including local .auth/adc.json)
         try {
           const fs = await import('node:fs');
           const path = await import('node:path');
@@ -128,6 +128,7 @@ export function registerTools(server: ToolServer) {
           const hints: string[] = [];
           const envPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
           const exists = (p?: string | null) => !!p && fs.existsSync(p);
+          const localPath = path.resolve(process.cwd(), '.auth', 'adc.json');
           let wellKnown: string | null = null;
           if (process.platform === 'win32') {
             const appData = process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming');
@@ -136,6 +137,7 @@ export function registerTools(server: ToolServer) {
             wellKnown = path.join(os.homedir(), '.config', 'gcloud', 'application_default_credentials.json');
           }
           if (exists(envPath)) hints.push(`  ADC file (env): ${envPath}`);
+          else if (exists(localPath)) hints.push(`  ADC file (project .auth): ${localPath}`);
           else if (exists(wellKnown)) hints.push(`  ADC file (well-known): ${wellKnown}`);
           else hints.push('  ADC file: not found in env or well-known path');
           lines.push('', 'ADC file discovery:', ...hints);
@@ -146,6 +148,49 @@ export function registerTools(server: ToolServer) {
           // ignore discovery errors
         }
         return { content: [{ type: 'text', text: lines.join('\n') }] };
+      }
+
+      if (action === 'oauth_login') {
+        const clientId = (process.env.GOOGLE_OAUTH_CLIENT_ID || '').trim();
+        const clientSecret = (process.env.GOOGLE_OAUTH_CLIENT_SECRET || '').trim();
+        if (!clientId || !clientSecret) {
+          const lines = [
+            'Missing GOOGLE_OAUTH_CLIENT_ID and/or GOOGLE_OAUTH_CLIENT_SECRET.',
+            'Set both env vars to a Desktop app OAuth client and retry.',
+            'Preferred path remains: gcloud auth application-default login with Ads scope.',
+          ];
+          return { content: [{ type: 'text', text: lines.join('\n') }] };
+        }
+        try {
+          const mod = await import('./tools/oauth.js');
+          const { runDeviceOAuthForAds } = mod as any;
+          const out = await runDeviceOAuthForAds({ clientId, clientSecret });
+          const lines = [
+            'OAuth device flow completed.',
+            `Saved ADC authorized_user JSON: ${out.path}`,
+            '',
+            'Next steps for current shell (optional):',
+            `  export GOOGLE_APPLICATION_CREDENTIALS="${out.path}"`,
+          ];
+          // Verify scope by listing accounts
+          try {
+            const resp = await listAccessibleCustomers();
+            if (resp.ok) {
+              lines.push('Ads scope check after oauth_login: OK');
+              const count = resp.data?.resourceNames?.length || 0;
+              lines.push(`Accessible accounts: ${count}`);
+            } else {
+              lines.push(`Ads scope check after oauth_login: HTTP ${resp.status}`);
+            }
+          } catch { /* ignore */ }
+          return { content: [{ type: 'text', text: lines.join('\n') }] };
+        } catch (e: any) {
+          const lines = [
+            'OAuth device flow failed.',
+            `Error: ${e?.message || String(e)}`,
+          ];
+          return { content: [{ type: 'text', text: lines.join('\n') }] };
+        }
       }
 
       if (action === 'switch') {
