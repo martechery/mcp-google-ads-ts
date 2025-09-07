@@ -259,7 +259,7 @@ export function registerTools(server: ToolServer) {
   addTool(
     server,
     "get_performance",
-    "Get performance (level: campaign|ad_group|ad). Aliases accepted: customerId, pageSize, pageToken, autoPaginate, maxPages, outputFormat.",
+    "Get performance (level: account|campaign|ad_group|ad). Aliases accepted: customerId, pageSize, pageToken, autoPaginate, maxPages, outputFormat.",
     GetPerformanceZ,
     async (_input: any) => {
       const input = normalizeArgs(_input || {});

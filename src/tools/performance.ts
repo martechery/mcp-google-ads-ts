@@ -1,4 +1,4 @@
-export type PerformanceLevel = 'campaign' | 'ad_group' | 'ad';
+export type PerformanceLevel = 'account' | 'campaign' | 'ad_group' | 'ad';
 
 export type PerformanceFilters = {
   status?: string;
@@ -32,6 +32,17 @@ export function buildPerformanceQuery(
   let nameField = '';
   const campaignNameField = 'campaign.name';
   switch (level) {
+    case 'account':
+      fields = `
+        customer.id,
+        customer.descriptive_name,
+        customer.currency_code,
+        ${baseMetrics}
+      `;
+      from = 'customer';
+      statusField = 'customer.status';
+      nameField = 'customer.descriptive_name';
+      break;
     case 'campaign':
       fields = `
         campaign.id,
@@ -81,7 +92,8 @@ export function buildPerformanceQuery(
   const esc = (v: string) => v.replace(/'/g, "''");
   if (filters.status) whereClauses.push(`AND ${statusField} = '${esc(filters.status)}'`);
   if (filters.nameContains) whereClauses.push(`AND ${nameField} LIKE '%${esc(filters.nameContains)}%'`);
-  if (filters.campaignNameContains) whereClauses.push(`AND ${campaignNameField} LIKE '%${esc(filters.campaignNameContains)}%'`);
+  if (filters.campaignNameContains && level !== 'account')
+    whereClauses.push(`AND ${campaignNameField} LIKE '%${esc(filters.campaignNameContains)}%'`);
   if (typeof filters.minClicks === 'number') whereClauses.push(`AND metrics.clicks >= ${Math.max(0, Math.floor(filters.minClicks))}`);
   if (typeof filters.minImpressions === 'number') whereClauses.push(`AND metrics.impressions >= ${Math.max(0, Math.floor(filters.minImpressions))}`);
 

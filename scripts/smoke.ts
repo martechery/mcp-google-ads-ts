@@ -1,3 +1,4 @@
+/// <reference types="node" />
 /*
   Real-world smoke test using ADC and developer token.
   Usage:

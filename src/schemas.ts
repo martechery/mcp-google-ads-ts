@@ -52,7 +52,7 @@ export const ExecuteGaqlSchema: JsonSchema = zodToJsonSchema(ExecuteGaqlZ, 'Exec
 export const GetPerformanceZ = z.object({
   customer_id: z.string().optional().describe('10-digit customer ID (no dashes). Optional.'),
   customerId: z.union([z.string(), z.number()]).optional().describe('Alias of customer_id.'),
-  level: z.enum(['campaign','ad_group','ad']).describe('Aggregation level'),
+  level: z.enum(['account','campaign','ad_group','ad']).describe('Aggregation level'),
   days: z.number().default(30).describe('Days back to query (1-365, default 30)'),
   limit: z.number().default(50).describe('GAQL LIMIT (1-1000, default 50)'),
   page_size: z.number().min(1).optional().describe('optional page size (1-10000)'),
