@@ -95,4 +95,19 @@ describe('manage_auth tool', () => {
     const text = res.content[0].text as string;
     expect(text).toContain('refresh login exit: 0');
   });
+
+  it('oauth_login uses device flow helper and verifies scope', async () => {
+    process.env.GOOGLE_OAUTH_CLIENT_ID = 'id';
+    process.env.GOOGLE_OAUTH_CLIENT_SECRET = 'secret';
+    vi.mock('../src/tools/oauth.js', () => ({
+      runDeviceOAuthForAds: vi.fn(async () => ({ path: '/tmp/adc.json' })),
+    }));
+    const { registerTools } = await import('../src/server-tools.js');
+    const server = new FakeServer();
+    registerTools(server as any);
+    // ensure list accounts is OK (already mocked at top)
+    const res = await server.tools['manage_auth']({ action: 'oauth_login' });
+    const text = res.content[0].text as string;
+    expect(text).toContain('Saved ADC authorized_user JSON: /tmp/adc.json');
+  });
 });

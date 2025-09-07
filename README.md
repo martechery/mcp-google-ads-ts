@@ -73,6 +73,24 @@ Google Ads MCP server with GCloud/ADC auth. Minimal, fast, and ready for Claude/
 - Optional CLI token fallback: set `GOOGLE_ADS_GCLOUD_USE_CLI=true`
 - Other modes (raw OAuth client JSON, service accounts) are not supported here. Google Ads requires user OAuth; service accounts are generally not accepted.
 
+### Existing ADC File (no gcloud)
+- If you already have an `authorized_user` ADC JSON:
+  - Set `GOOGLE_APPLICATION_CREDENTIALS=/absolute/path/to/adc.json`.
+  - Or place it at `.auth/adc.json` in this project; startup auto-detects it.
+
+### Optional: OAuth Client (no gcloud)
+- If you cannot install gcloud, you can complete OAuth via device flow and create an ADC file locally.
+- Set env vars to your Desktop-app OAuth client:
+  - `GOOGLE_OAUTH_CLIENT_ID=...`
+  - `GOOGLE_OAUTH_CLIENT_SECRET=...`
+- Run the tool action:
+  - `manage_auth` with `{ "action": "oauth_login" }`
+- This will:
+  - Prompt you to open a URL and enter a code.
+  - Save an ADC `authorized_user` JSON at `.auth/adc.json` (0600 perms).
+  - Set `GOOGLE_APPLICATION_CREDENTIALS` in-process and verify Ads scope.
+  - Next startups auto-detect `.auth/adc.json`, so you usually don’t need to export anything.
+
 ## Tools
 
 - manage_auth
@@ -82,7 +100,7 @@ Google Ads MCP server with GCloud/ADC auth. Minimal, fast, and ready for Claude/
     - `config_name`: gcloud config name (for `switch`)
     - `allow_subprocess`: boolean (default true). Set to `false` to only print commands (no execution).
   - Output: Text summary including env values, ADC probe, Ads scope check, accessible accounts count. For `switch`/`refresh`, executes `gcloud` by default (or prints commands if `allow_subprocess=false`).
-  - Behavior: If gcloud is not found on PATH, the tool falls back to printing the exact commands and an install link. No local OAuth fallback is performed.
+  - Behavior: If gcloud is not found on PATH, the tool falls back to printing the exact commands and an install link. If `GOOGLE_OAUTH_CLIENT_ID/SECRET` are present, use `{ "action": "oauth_login" }` to complete OAuth locally and create an ADC file.
   - Example (status): `{ "action": "status" }`
   - Example (print steps, don’t run): `{ "action": "refresh" }`
   - Example (execute): `{ "action": "switch", "config_name": "work", "allow_subprocess": true }`
