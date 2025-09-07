@@ -29,4 +29,17 @@ describe('gaql_help tool', () => {
     expect(text.toLowerCase()).toContain('order by');
     expect(text.toLowerCase()).toContain('limit');
   });
+
+  it('includes Sources with local docs in hybrid default (fetch mocked)', async () => {
+    // @ts-expect-error: test overrides global.fetch
+    global.fetch = vi.fn(async () => ({ ok: true, text: async () => '<html><body><h1>Overview</h1><p>GAQL basics</p></body></html>' }));
+    const { registerTools } = await import('../src/server-tools.js');
+    const server = new FakeServer();
+    registerTools(server as any);
+    const res = await server.tools['gaql_help']({ include_examples: true });
+    const text = res.content[0].text as string;
+    expect(text).toContain('GAQL help (condensed)');
+    expect(text).toContain('Sources:');
+    expect(text).toContain('Local: docs/gaql.md');
+  });
 });

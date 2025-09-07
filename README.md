@@ -172,19 +172,24 @@ Note: You don’t run tool payloads yourself — your MCP client’s LLM calls t
     - Campaigns filtered: `{ "level": "campaign", "filters": { "status": "ENABLED", "minClicks": 10 } }`
 
 - gaql_help
-  - Purpose: Pull targeted GAQL guidance from Google docs or return an offline cheat sheet.
+  - Purpose: Provide GAQL guidance using an offline-first cheat sheet plus best-effort official docs.
+  - Defaults:
+    - Offline-first hybrid behavior. Includes `docs/gaql.md` and, when reachable, pulls relevant snippets from official GAQL docs.
+    - No environment configuration required; the LLM can steer with inputs only.
   - Inputs:
     - `question` (free text)
     - `topics`: subset of `[overview, grammar, structure, date_ranges, case_sensitivity, ordering, cookbook]`
-    - `quick_tips`: boolean (default `false`). When `true`, returns an offline tips list (no network).
-    - `include_examples`: boolean (best-effort, subject to `max_chars`)
-    - `max_chars`: 400–4000 (default 1600)
+    - `quick_tips`: boolean (default `false`). When `true`, returns a concise offline tips list only.
+    - `include_examples`: boolean (biases toward code blocks and increases returned snippet count)
+    - `max_chars`: 400–8000 (default ~1800; may expand slightly when `include_examples=true`)
+  - Output:
+    - “Sources” section listing `docs/gaql.md` and any official docs used, followed by condensed, high-signal snippets.
   - How to ask your MCP client:
     - “Give me GAQL quick tips.”
     - “GAQL help on date ranges and ordering with examples.”
   - Examples:
-    - Offline: `{ "quick_tips": true }`
-    - Focused: `{ "question": "date ranges and ordering", "topics": ["date_ranges", "ordering"], "max_chars": 1200 }`
+    - Quick tips only: `{ "quick_tips": true }`
+    - Focused help: `{ "question": "date ranges and ordering", "topics": ["date_ranges", "ordering"], "include_examples": true }`
 
 ## Env Vars
 - Required
@@ -197,6 +202,7 @@ Note: You don’t run tool payloads yourself — your MCP client’s LLM calls t
   - `GOOGLE_ADS_ACCOUNT_ID` — default 10-digit account ID
   - `GOOGLE_ADS_MANAGER_ACCOUNT_ID` — manager account ID (MCC) when acting through a manager
   - `GOOGLE_ADS_API_VERSION` — default `v19`
+  - Note: `gaql_help` does not require any env flags; it runs with a sensible offline-first default and lists its sources.
   - `GOOGLE_ADS_ACCESS_TOKEN` — dev/test override token (bypasses ADC)
 
 ## Development
