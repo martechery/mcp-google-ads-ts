@@ -297,7 +297,7 @@ export function registerTools(server: ToolServer) {
           return { content: [{ type: 'text', text }] };
         }
         const { execCmd } = await import('./utils/exec.js');
-        const step1 = await execCmd('gcloud', ['auth', 'application-default', 'login', '--scopes=https://www.googleapis.com/auth/adwords']);
+        const step1 = await execCmd('gcloud', ['auth', 'application-default', 'login', '--scopes=https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/adwords']);
         // Verify by printing a token (will also surface scope issues)
         const step2 = await execCmd('gcloud', ['auth', 'application-default', 'print-access-token']);
         let check: any;
