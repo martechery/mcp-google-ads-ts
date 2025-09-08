@@ -1,7 +1,7 @@
 {
   "name": "mcp-google-ads-ts",
   "version": "0.1.0",
-  "description": "Model Context Protocol (MCP) server for Google Ads with GCloud/ADC auth in TypeScript",
+  "description": "Model Context Protocol (MCP) server for Google Ads with GCloud/ADC auth written in TypeScript",
   "private": false,
   "type": "module",
   "main": "dist/cli.js",
