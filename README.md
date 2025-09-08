@@ -319,22 +319,22 @@ npm run dev
 - **Error handling**: Provides clear error messages and installation links when gcloud is missing
 - **Timeout protection**: Commands have built-in timeouts to prevent hanging
 
-**Example usage:**
-```typescript
+**Example user prompts:**
+```
 // Check authentication status
-manage_auth
+"Check my Google Ads authentication status"
 
 // Refresh credentials with Google Ads scopes  
-manage_auth { "action": "refresh" }
+"Refresh my Google Ads authentication credentials"
 
 // Switch gcloud configuration
-manage_auth { "action": "switch", "config_name": "my-project" }
+"Switch to my-project gcloud configuration"
 
-// OAuth login using client credentials
-manage_auth { "action": "oauth_login" }
+// Set up OAuth authentication
+"Help me set up OAuth authentication for Google Ads"
 
-// Dry-run mode (show commands without executing)
-manage_auth { "action": "refresh", "allow_subprocess": false }
+// Show what commands would run without executing
+"Show me what commands would run to refresh my auth (dry-run mode)"
 ```
 
 ### 2. `list_resources` - List Google Ads resources
