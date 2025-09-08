@@ -358,6 +358,14 @@ Lists various Google Ads resources with support for hierarchical relationships a
 - `keywords` - List keywords
 - `extensions` - List ad extensions
 
+**Example user prompts:**
+```
+"List all my Google Ads accounts"
+"Show me campaigns for customer ID 1234567890"
+"Get all ad groups in JSON format"
+"List keywords for the Search campaign"
+```
+
 ### 3. `execute_gaql_query` - Execute Google Ads Query Language queries
 
 ```typescript
@@ -373,6 +381,14 @@ Lists various Google Ads resources with support for hierarchical relationships a
 ```
 
 Executes custom GAQL queries for advanced data retrieval and analysis with automatic pagination support.
+
+**Example user prompts:**
+```
+"Run this GAQL query: SELECT campaign.name, metrics.clicks FROM campaign WHERE segments.date DURING LAST_7_DAYS"
+"Execute a query to get impressions and CTR for all active campaigns"
+"Query ad performance data for the past 30 days in CSV format"
+"Show me all campaigns with their budgets and status"
+```
 
 ### 4. `get_performance` - Get performance metrics
 
@@ -393,6 +409,14 @@ Executes custom GAQL queries for advanced data retrieval and analysis with autom
 
 Retrieves performance metrics and reports for campaigns, ad groups, ads, and keywords with flexible filtering and segmentation.
 
+**Example user prompts:**
+```
+"Get campaign performance for the last 7 days"
+"Show me ad group metrics with cost and conversions for last month"
+"Get keyword performance data segmented by device"
+"Analyze ad performance with CTR and quality score metrics"
+```
+
 ### 5. `gaql_help` - Google Ads Query Language reference
 
 ```typescript
@@ -403,6 +427,14 @@ Retrieves performance metrics and reports for campaigns, ad groups, ads, and key
 ```
 
 Provides interactive help and documentation for Google Ads Query Language (GAQL), including available resources, fields, functions, and operators.
+
+**Example user prompts:**
+```
+"Help me with GAQL syntax"
+"What fields are available for the campaign resource?"
+"Show me examples of GAQL queries for performance data"
+"How do I filter by date ranges in GAQL?"
+```
 
 ## Development
 
