@@ -49,7 +49,7 @@ TypeScript implementation of an MCP server for Google Ads API with GCloud/ADC au
       "env": {
         "GOOGLE_ADS_DEVELOPER_TOKEN": "YOUR_DEV_TOKEN",
         "GOOGLE_ADS_ACCOUNT_ID": "1234567890",
-        "LOGIN_CUSTOMER_ID": "9876543210"
+        "GOOGLE_ADS_MANAGER_ACCOUNT_ID": "9876543210"
       }
     }
   }
@@ -96,11 +96,19 @@ Place your ADC file at `.auth/adc.json` in the project directory, or set `GOOGLE
 
 - **`GOOGLE_ADS_ACCOUNT_ID`**: Default Google Ads account ID (10-digit customer ID without dashes). Used as the default customer for all operations when not specified explicitly.
 
-- **`LOGIN_CUSTOMER_ID`**: For Multi-Customer Center (MCC) accounts - the customer ID that acts as the login customer. Required when accessing accounts under an MCC. This is typically your MCC account ID.
+- **`GOOGLE_ADS_MANAGER_ACCOUNT_ID`**: For Multi-Customer Center (MCC) accounts - the manager account ID that acts as the login customer. Required when accessing accounts under an MCC. This is typically your MCC account ID (10-digit numeric ID, no dashes).
 
 - **`GOOGLE_ADS_GCLOUD_USE_CLI`**: Set to `true` to enable gcloud CLI token fallback authentication. When enabled, the server will try to get access tokens using `gcloud auth print-access-token` if ADC is not available.
 
 - **`GOOGLE_APPLICATION_CREDENTIALS`**: Path to a Google service account key file or ADC credentials file. Takes precedence over default ADC locations.
+
+- **`GOOGLE_ADS_QUOTA_PROJECT_ID`**: GCP project ID used for quota/billing. Helps avoid 403 errors due to missing quota. Typically your active gcloud project ID.
+
+- **`GOOGLE_ADS_API_VERSION`**: API version string (e.g., v19, v20, v21). Defaults to v19 if unset.
+
+- **`GOOGLE_OAUTH_CLIENT_ID`** and **`GOOGLE_OAUTH_CLIENT_SECRET`**: Desktop OAuth client credentials used by `manage_auth` with `action: "oauth_login"` to create local ADC. Only needed if you cannot use gcloud.
+
+- **`GOOGLE_ADS_ACCESS_TOKEN`**: Direct access token for development/testing. When set, bypasses ADC. Not recommended for production use as tokens don't auto-refresh.
 
 ### Example Configuration
 ```env
@@ -111,7 +119,7 @@ GOOGLE_ADS_DEVELOPER_TOKEN=your-developer-token-here
 GOOGLE_ADS_ACCOUNT_ID=1234567890
 
 # Optional - For MCC accounts
-LOGIN_CUSTOMER_ID=9876543210
+GOOGLE_ADS_MANAGER_ACCOUNT_ID=9876543210
 
 # Optional - Authentication
 GOOGLE_ADS_GCLOUD_USE_CLI=true
@@ -133,7 +141,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS)
       "env": {
         "GOOGLE_ADS_DEVELOPER_TOKEN": "YOUR_DEV_TOKEN",
         "GOOGLE_ADS_ACCOUNT_ID": "1234567890",
-        "LOGIN_CUSTOMER_ID": "9876543210"
+        "GOOGLE_ADS_MANAGER_ACCOUNT_ID": "9876543210"
       }
     }
   }
@@ -148,7 +156,7 @@ Install and configure with a single command:
 claude mcp add google-ads \\
   -e GOOGLE_ADS_DEVELOPER_TOKEN=your-token \\
   -e GOOGLE_ADS_ACCOUNT_ID=1234567890 \\
-  -e LOGIN_CUSTOMER_ID=9876543210 \\
+  -e GOOGLE_ADS_MANAGER_ACCOUNT_ID=9876543210 \\
   -- npx mcp-google-ads-ts
 ```
 
@@ -167,7 +175,7 @@ Add to your MCP settings in Cursor. Go to Cursor Settings > Features > Model Con
       "env": {
         "GOOGLE_ADS_DEVELOPER_TOKEN": "YOUR_DEV_TOKEN",
         "GOOGLE_ADS_ACCOUNT_ID": "1234567890",
-        "LOGIN_CUSTOMER_ID": "9876543210"
+        "GOOGLE_ADS_MANAGER_ACCOUNT_ID": "9876543210"
       }
     }
   }
@@ -229,7 +237,7 @@ npm run build
       "env": {
         "GOOGLE_ADS_DEVELOPER_TOKEN": "YOUR_DEV_TOKEN",
         "GOOGLE_ADS_ACCOUNT_ID": "1234567890",
-        "LOGIN_CUSTOMER_ID": "9876543210"
+        "GOOGLE_ADS_MANAGER_ACCOUNT_ID": "9876543210"
       }
     }
   }
@@ -250,28 +258,76 @@ npm run dev
 
 ```typescript
 {
-  allow_subprocess?: boolean  // Allow gcloud command execution (default: true)
+  action?: 'status' | 'switch' | 'refresh' | 'oauth_login' | 'set_project' | 'set_quota_project',  // Action to perform (default: 'status')
+  config_name?: string,        // For 'switch' action: gcloud configuration name
+  project_id?: string,         // For 'set_project' and 'set_quota_project' actions
+  project?: string,            // Alias for project_id
+  allow_subprocess?: boolean   // Allow gcloud command execution (default: true)
 }
 ```
 
-**Comprehensive authentication management tool** that:
+**Comprehensive authentication management tool** with multiple actions:
 
-- **Checks authentication status**: Validates current ADC credentials and Google Ads API access
-- **Detects missing scopes**: Identifies if your credentials lack required Google Ads scopes
-- **Validates developer token**: Confirms your developer token is working with the API
-- **Provides fix commands**: When `allow_subprocess=true` (default), automatically executes gcloud commands to fix authentication issues
-- **Handles MCC accounts**: Validates `LOGIN_CUSTOMER_ID` for Multi-Customer Center setups
-- **Troubleshooting guidance**: Provides detailed error messages and resolution steps
+#### `action: 'status'` (default)
+- **Environment inspection**: Shows all Google Ads environment variables
+- **ADC file discovery**: Locates and validates Application Default Credentials files
+- **Token validation**: Checks access token presence and scopes via Google OAuth2 API
+- **Scope verification**: Tests Google Ads API access by calling `listAccessibleCustomers`
+- **Account enumeration**: Counts accessible customer accounts under current credentials
+- **Troubleshooting hints**: Provides guidance when authentication issues are detected
 
-**Common use cases:**
-- Run this first when setting up the server
-- Troubleshoot authentication issues
-- Verify MCC account configuration
-- Re-authenticate after token expiration
+#### `action: 'oauth_login'`
+- **Device OAuth flow**: Interactive browser-based authentication using OAuth client credentials
+- **Requires env vars**: `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET`
+- **Saves ADC file**: Creates `authorized_user` JSON at `.auth/adc.json` 
+- **Scope validation**: Automatically verifies Google Ads API access after completion
+- **Sets credentials**: Updates `GOOGLE_APPLICATION_CREDENTIALS` for immediate use
+
+#### `action: 'switch'`
+- **Configuration switching**: Changes active gcloud configuration
+- **Requires**: `config_name` parameter
+- **Auto-execution**: Runs `gcloud config configurations activate <name>` when `allow_subprocess=true`
+- **Guidance**: Provides next steps for refreshing ADC credentials with correct scopes
+
+#### `action: 'refresh'`
+- **Credential refresh**: Re-authenticates ADC with required Google Ads scopes
+- **Auto-execution**: Runs `gcloud auth application-default login` with proper scopes
+- **Token verification**: Prints access token to verify successful authentication
+- **Scope testing**: Validates Google Ads API access after refresh
+
+#### `action: 'set_project'`
+- **Project configuration**: Sets default GCP project for gcloud
+- **Requires**: `project_id` parameter
+- **Command**: `gcloud config set project <project_id>`
+
+#### `action: 'set_quota_project'`
+- **Quota project setup**: Sets ADC quota project for billing attribution
+- **Requires**: `project_id` parameter  
+- **Command**: `gcloud auth application-default set-quota-project <project_id>`
+
+#### Safety Features
+- **Dry-run mode**: Set `allow_subprocess: false` to see planned commands without execution
+- **gcloud detection**: Automatically checks for gcloud CLI availability before execution
+- **Error handling**: Provides clear error messages and installation links when gcloud is missing
+- **Timeout protection**: Commands have built-in timeouts to prevent hanging
 
 **Example usage:**
-- `manage_auth` - Full authentication check with automatic fixes
-- `manage_auth { "allow_subprocess": false }` - Check status only, don't execute fix commands
+```typescript
+// Check authentication status
+manage_auth
+
+// Refresh credentials with Google Ads scopes  
+manage_auth { "action": "refresh" }
+
+// Switch gcloud configuration
+manage_auth { "action": "switch", "config_name": "my-project" }
+
+// OAuth login using client credentials
+manage_auth { "action": "oauth_login" }
+
+// Dry-run mode (show commands without executing)
+manage_auth { "action": "refresh", "allow_subprocess": false }
+```
 
 ### 2. `list_resources` - List Google Ads resources
 
