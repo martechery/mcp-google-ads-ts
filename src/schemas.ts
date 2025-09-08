@@ -77,10 +77,7 @@ export const GetPerformanceSchema: JsonSchema = zodToJsonSchema(GetPerformanceZ,
 
 // GAQL Help schema
 export const GaqlHelpZ = z.object({
-  question: z.string().optional().describe('your GAQL question or keywords'),
-  topics: z.array(z.string()).optional().describe('subset of topics to search'),
-  quick_tips: z.boolean().default(false).describe('return built-in cheat-sheet without network'),
-  include_examples: z.boolean().default(false).describe('reserve space for examples (best-effort)'),
-  max_chars: z.number().min(400).max(4000).optional().describe('max characters to return (400-4000)'),
+  topic: z.enum(['overview', 'grammar', 'structure', 'date-ranges', 'case-sensitivity', 'ordering-limiting', 'cookbook', 'field-reference']).optional().describe('specific GAQL topic to retrieve'),
+  search: z.string().optional().describe('search term for help content'),
 });
 export const GaqlHelpSchema: JsonSchema = zodToJsonSchema(GaqlHelpZ, 'GaqlHelp') as unknown as JsonSchema;

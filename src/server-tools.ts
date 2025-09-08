@@ -603,16 +603,13 @@ export function registerTools(server: ToolServer) {
   addTool(
     server,
     "gaql_help",
-    "Targeted GAQL guidance from Google docs. Hints: set quick_tips=true for offline cheat-sheet; topics=[overview,grammar,structure,date_ranges,case_sensitivity,ordering,cookbook].",
+    "Get GAQL help with local documentation and official Google Ads API links. Use topic for specific areas or search for keywords.",
     GaqlHelpZ,
     async (input: any) => {
       try {
         const text = await gaqlHelp({
-          question: input?.question,
-          topics: Array.isArray(input?.topics) ? input.topics : undefined,
-          quick_tips: !!input?.quick_tips,
-          include_examples: !!input?.include_examples,
-          max_chars: input?.max_chars,
+          topic: input?.topic,
+          search: input?.search,
         });
         return { content: [{ type: 'text', text }] };
       } catch (e: any) {

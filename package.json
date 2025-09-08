@@ -20,7 +20,6 @@
     "test:watch": "vitest",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix",
-    "debug:live": "tsx scripts/live-check.ts",
     "prepublishOnly": "npm run build && npm run test && npm run lint",
     "postversion": "git push && git push --tags"
   },

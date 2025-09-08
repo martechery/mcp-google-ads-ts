@@ -1,6 +1,5 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { normalizeApiVersion } from '../utils/normalizeApiVersion.js';
 
 export type GaqlHelpInput = {
@@ -31,56 +30,65 @@ function getFieldReferenceUrls(): string[] {
   ];
 }
 
-async function readLocalDocs(): Promise<string[]> {
-  const docs: string[] = [];
-  const gaqlDir = path.resolve(process.cwd(), 'docs/gaql');
+const AVAILABLE_TOPICS = [
+  'overview', 'grammar', 'structure', 'date-ranges', 
+  'case-sensitivity', 'ordering-limiting', 'cookbook', 'field-reference'
+] as const;
+
+async function readSpecificTopic(topic: string): Promise<string | null> {
+  const gaqlDir = path.resolve(process.cwd(), 'resources/gaql');
+  const filePath = path.join(gaqlDir, `${topic}.md`);
   
-  const docFiles = [
-    'overview.md',
-    'grammar.md', 
-    'structure.md',
-    'date-ranges.md',
-    'case-sensitivity.md',
-    'ordering-limiting.md',
-    'cookbook.md',
-    'field-reference.md'
-  ];
-  
-  for (const file of docFiles) {
-    try {
-      const filePath = path.join(gaqlDir, file);
-      const content = await fs.readFile(filePath, 'utf8');
-      docs.push(`=== ${file.replace('.md', '').toUpperCase()} ===\n${content}`);
-    } catch {
-      // Skip missing files silently
-    }
+  try {
+    const content = await fs.readFile(filePath, 'utf8');
+    return `=== ${topic.toUpperCase().replace('-', ' ')} ===\n${content}`;
+  } catch {
+    return null;
   }
-  
-  // Fallback to original gaql.md if structured docs not found
-  if (docs.length === 0) {
-    try {
-      const fallbackPath = path.resolve(process.cwd(), 'docs/gaql.md');
-      const content = await fs.readFile(fallbackPath, 'utf8');
-      docs.push(`=== GAQL CHEAT SHEET ===\n${content}`);
-    } catch {
-      // No local docs available
-    }
-  }
-  
-  return docs;
 }
+
 
 export async function gaqlHelp(input: GaqlHelpInput = {}): Promise<string> {
   const sections: string[] = [];
+  const version = getApiVersion();
   
-  // Header
+  // If specific topic requested, return just that topic
+  if (input.topic) {
+    const topicContent = await readSpecificTopic(input.topic);
+    if (topicContent) {
+      sections.push(`# GAQL Help: ${input.topic.replace('-', ' ').toUpperCase()}`);
+      sections.push(`**API Version**: ${version}\n`);
+      sections.push(topicContent);
+      
+      // Add relevant official documentation link
+      const officialUrl = OFFICIAL_URLS[input.topic.replace('-', '_') as keyof typeof OFFICIAL_URLS];
+      if (officialUrl) {
+        sections.push(`\n**Official Documentation**: ${officialUrl}`);
+      }
+      sections.push(`\n**Field References**: ${getFieldReferenceUrls().join(', ')}`);
+      
+      return sections.join('\n');
+    } else {
+      return `Topic "${input.topic}" not found. Available topics: ${AVAILABLE_TOPICS.join(', ')}`;
+    }
+  }
+  
+  // Default: Show overview with available topics
   sections.push('# Google Ads Query Language (GAQL) Help');
   
+  // Show available topics
+  sections.push(`
+## Available Topics
+Use the topic parameter to get specific documentation:
+${AVAILABLE_TOPICS.map(topic => `- **${topic}**: ${topic.replace('-', ' ')} documentation`).join('\n')}
+
+Example: Use topic="overview" for basic GAQL concepts`);
+
   // Quick Tips
   sections.push(`
 ## Quick Tips
 - FROM uses a RESOURCE (use list_resources tool to discover available resources)
-- SELECT fields must be selectable for the chosen FROM resource
+- SELECT fields must be selectable for the chosen FROM resource  
 - WHERE supports =, !=, <, >, >=, <=, LIKE, IN, DURING (for date ranges)
 - Date ranges: DURING LAST_7_DAYS, LAST_30_DAYS, THIS_MONTH, etc.
 - ORDER BY field [ASC|DESC], LIMIT n for sorting and limiting results
@@ -89,10 +97,9 @@ export async function gaqlHelp(input: GaqlHelpInput = {}): Promise<string> {
 - Use customer.currency_code to interpret cost_micros correctly`);
 
   // API Version Info
-  const version = getApiVersion();
   sections.push(`
 ## Current API Version: ${version}
-The MCP server is configured to use API version ${version}. 
+The MCP server is configured to use API version ${version}.
 Set GOOGLE_ADS_API_VERSION environment variable to use a different version.`);
 
   // Official Documentation Links
@@ -100,21 +107,13 @@ Set GOOGLE_ADS_API_VERSION environment variable to use a different version.`);
 ## Official Documentation
 ${Object.entries(OFFICIAL_URLS).map(([topic, url]) => `- ${topic.replace('_', ' ')}: ${url}`).join('\n')}
 
-## Field References
+## Field References  
 ${getFieldReferenceUrls().join('\n')}`);
-
-  // Local Documentation
-  const localDocs = await readLocalDocs();
-  if (localDocs.length > 0) {
-    sections.push('\n## Local Documentation\n');
-    sections.push(...localDocs);
-  } else {
-    sections.push('\n## Local Documentation\nNo local GAQL documentation found in docs/gaql/ directory.');
-  }
 
   // Footer
   sections.push(`
 ## Need More Help?
+- Use topic parameter to get detailed documentation on specific areas
 - Use the "list_resources" tool to discover available resources and their fields
 - Use the "execute_gaql_query" tool to test your queries
 - Check field compatibility in the official API reference above`);
