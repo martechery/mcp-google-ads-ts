@@ -31,7 +31,7 @@ TypeScript implementation of an MCP server for Google Ads API with GCloud/ADC au
 
 - Node.js 18+ and npm
 - A GCP project with the Google Ads API enabled
-- Ensure the credentials you use (user/ADC or service account) have the Service Usage Consumer role on that project (grants `serviceusage.services.use`)
+- Ensure the credentials you use (user/ADC) have the Service Usage Consumer role on that project (grants `serviceusage.services.use`)
 - A Google Ads Developer Token is required:
   - [Documentation](https://developers.google.com/google-ads/api/docs/get-started/dev-token)
   - [Application form](https://support.google.com/adspolicy/contact/new_token_application)
@@ -78,13 +78,11 @@ The server uses Google Application Default Credentials (ADC) for secure authenti
 gcloud auth application-default login --scopes=https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/adwords
 ```
 
-#### Method 2: Service Account Key File
-```bash
-export GOOGLE_APPLICATION_CREDENTIALS="/path/to/service-account-key.json"
-```
+#### Method 2: Existing ADC File
+Place your ADC file at `.auth/adc.json` in the project directory, or set `GOOGLE_APPLICATION_CREDENTIALS` to point to your authorized_user JSON file.
 
-#### Method 3: Existing ADC File
-Place your ADC file at `.auth/adc.json` in the project directory, or set `GOOGLE_APPLICATION_CREDENTIALS` to point to your ADC JSON file.
+#### Method 3: OAuth Device Flow
+Use `manage_auth { "action": "oauth_login" }` with `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET` environment variables to create an ADC file interactively.
 
 ## Environment Variables
 
@@ -98,9 +96,8 @@ Place your ADC file at `.auth/adc.json` in the project directory, or set `GOOGLE
 
 - **`GOOGLE_ADS_MANAGER_ACCOUNT_ID`** (optional): For Multi-Customer Center (MCC) accounts - the manager account ID that acts as the login customer. Required when accessing accounts under an MCC. This is typically your MCC account ID (10-digit numeric ID, no dashes).
 
-- **`GOOGLE_ADS_GCLOUD_USE_CLI`** (optional): Set to `true` to enable gcloud CLI token fallback authentication. When enabled, the server will try to get access tokens using `gcloud auth print-access-token` if ADC is not available.
 
-- **`GOOGLE_APPLICATION_CREDENTIALS`** (optional): Path to a Google service account key file or ADC credentials file. Takes precedence over default ADC locations.
+- **`GOOGLE_APPLICATION_CREDENTIALS`** (optional): Path to an ADC credentials file (authorized_user JSON). Takes precedence over default ADC locations.
 
 - **`GOOGLE_ADS_QUOTA_PROJECT_ID`** (optional): GCP project ID used for quota/billing. Helps avoid 403 errors due to missing quota. Typically your active gcloud project ID.
 
@@ -211,7 +208,7 @@ Install the MCP extension and add the server configuration:
     "GOOGLE_ADS_DEVELOPER_TOKEN": "YOUR_DEV_TOKEN",       // Required: Your Google Ads Developer Token
     "GOOGLE_ADS_ACCOUNT_ID": "1234567890",                // Optional: Default customer ID (10 digits, no dashes)
     "GOOGLE_ADS_MANAGER_ACCOUNT_ID": "9876543210",        // Optional: MCC account ID for login customer
-    "GOOGLE_ADS_GCLOUD_USE_CLI": "true"                   // Optional: Enable gcloud CLI token fallback
+    "GOOGLE_ADS_API_VERSION": "v19"                       // Optional: API version (defaults to v19)
   }
 }
 ```
