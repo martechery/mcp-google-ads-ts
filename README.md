@@ -101,7 +101,7 @@ Use `manage_auth { "action": "oauth_login" }` with `GOOGLE_OAUTH_CLIENT_ID` and 
 
 - **`GOOGLE_ADS_QUOTA_PROJECT_ID`** (optional): GCP project ID used for quota/billing. Helps avoid 403 errors due to missing quota. Typically your active gcloud project ID.
 
-- **`GOOGLE_ADS_API_VERSION`** (optional): API version string (e.g., v19, v20, v21). Defaults to v19 if unset.
+- **`GOOGLE_ADS_API_VERSION`** (optional): API version string (e.g., v20, v21, v22). Defaults to v21 if unset. Supports format normalization ("21" → "v21").
 
 - **`GOOGLE_OAUTH_CLIENT_ID`** and **`GOOGLE_OAUTH_CLIENT_SECRET`** (optional): Desktop OAuth client credentials used by `manage_auth` with `action: "oauth_login"` to create local ADC. Only needed if you cannot use gcloud.
 
@@ -181,7 +181,7 @@ Add to your MCP settings in Cursor. Go to Cursor Settings > Features > Model Con
         "GOOGLE_ADS_DEVELOPER_TOKEN": "YOUR_DEV_TOKEN",       // Required: Your Google Ads Developer Token
         "GOOGLE_ADS_ACCOUNT_ID": "1234567890",                // Optional: Default customer ID (10 digits, no dashes)
         "GOOGLE_ADS_MANAGER_ACCOUNT_ID": "9876543210",        // Optional: MCC account ID for login customer
-        "GOOGLE_ADS_API_VERSION": "v19"                       // Optional: API version (defaults to v19)
+        "GOOGLE_ADS_API_VERSION": "v21"                       // Optional: API version (defaults to v21)
       }
     }
   }
@@ -208,7 +208,7 @@ Install the MCP extension and add the server configuration:
     "GOOGLE_ADS_DEVELOPER_TOKEN": "YOUR_DEV_TOKEN",       // Required: Your Google Ads Developer Token
     "GOOGLE_ADS_ACCOUNT_ID": "1234567890",                // Optional: Default customer ID (10 digits, no dashes)
     "GOOGLE_ADS_MANAGER_ACCOUNT_ID": "9876543210",        // Optional: MCC account ID for login customer
-    "GOOGLE_ADS_API_VERSION": "v19"                       // Optional: API version (defaults to v19)
+    "GOOGLE_ADS_API_VERSION": "v21"                       // Optional: API version (defaults to v21)
   }
 }
 ```

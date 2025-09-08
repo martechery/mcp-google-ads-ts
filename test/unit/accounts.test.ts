@@ -28,7 +28,7 @@ describe('listAccessibleCustomers', () => {
     expect(res.data?.resourceNames?.length).toBe(2);
     expect(global.fetch).toHaveBeenCalledTimes(1);
     const [url, init] = global.fetch.mock.calls[0];
-    expect(url).toContain('/v19/customers:listAccessibleCustomers');
+    expect(url).toContain('/v21/customers:listAccessibleCustomers');
     expect(init.method).toBe('GET');
     expect(init.headers.Authorization).toBe('Bearer tkn');
   });

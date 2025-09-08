@@ -30,7 +30,7 @@ describe('executeGaql', () => {
     expect(res.data?.results?.length).toBe(1);
     expect(global.fetch).toHaveBeenCalledTimes(1);
     const [url, init] = global.fetch.mock.calls[0];
-    expect(url).toContain('/v19/customers/1234567890/googleAds:search');
+    expect(url).toContain('/v21/customers/1234567890/googleAds:search');
     expect(init.method).toBe('POST');
     expect(init.headers.Authorization).toBe('Bearer test-token');
     expect(init.headers['developer-token']).toBe('dev-token');

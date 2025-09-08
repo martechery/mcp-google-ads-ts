@@ -1,8 +1,9 @@
 import { buildAdsHeaders } from '../headers.js';
 import { getAccessToken } from '../auth.js';
 import { formatCustomerId } from '../utils/formatCustomerId.js';
+import { normalizeApiVersion } from '../utils/normalizeApiVersion.js';
 
-const API_VERSION = process.env.GOOGLE_ADS_API_VERSION || 'v19';
+const API_VERSION = normalizeApiVersion(process.env.GOOGLE_ADS_API_VERSION);
 
 export type ExecuteGaqlParams = {
   customerId: string;

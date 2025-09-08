@@ -4,6 +4,7 @@ import 'dotenv/config';
 import { getAccessToken } from '../src/auth.js';
 import { buildAdsHeaders } from '../src/headers.js';
 import { formatCustomerId } from '../src/utils/formatCustomerId.js';
+import { normalizeApiVersion } from '../src/utils/normalizeApiVersion.js';
 
 async function tokenInfo(token: string) {
   try {
@@ -18,8 +19,9 @@ async function tokenInfo(token: string) {
 async function listAccounts() {
   const { token, quotaProjectId } = await getAccessToken();
   const developerToken = process.env.GOOGLE_ADS_DEVELOPER_TOKEN || '';
+  const apiVersion = normalizeApiVersion(process.env.GOOGLE_ADS_API_VERSION);
   const headers = buildAdsHeaders({ accessToken: token, developerToken, quotaProjectId });
-  const url = `https://googleads.googleapis.com/v19/customers:listAccessibleCustomers`;
+  const url = `https://googleads.googleapis.com/${apiVersion}/customers:listAccessibleCustomers`;
   const res = await fetch(url, { method: 'GET', headers });
   const text = await res.text();
   return { ok: res.ok, status: res.status, text };
@@ -28,9 +30,10 @@ async function listAccounts() {
 async function runGaql(customerId: string, query: string) {
   const { token, quotaProjectId } = await getAccessToken();
   const developerToken = process.env.GOOGLE_ADS_DEVELOPER_TOKEN || '';
+  const apiVersion = normalizeApiVersion(process.env.GOOGLE_ADS_API_VERSION);
   const loginCustomerId = process.env.GOOGLE_ADS_MANAGER_ACCOUNT_ID;
   const headers = buildAdsHeaders({ accessToken: token, developerToken, quotaProjectId, loginCustomerId });
-  const url = `https://googleads.googleapis.com/v19/customers/${formatCustomerId(customerId)}/googleAds:search`;
+  const url = `https://googleads.googleapis.com/${apiVersion}/customers/${formatCustomerId(customerId)}/googleAds:search`;
   const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify({ query, pageSize: 1 }) });
   const text = await res.text();
   return { ok: res.ok, status: res.status, text };
