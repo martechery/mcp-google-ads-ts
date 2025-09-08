@@ -105,7 +105,7 @@ Use `manage_auth { "action": "oauth_login" }` with `GOOGLE_OAUTH_CLIENT_ID` and 
 
 - **`GOOGLE_OAUTH_CLIENT_ID`** and **`GOOGLE_OAUTH_CLIENT_SECRET`** (optional): Desktop OAuth client credentials used by `manage_auth` with `action: "oauth_login"` to create local ADC. Only needed if you cannot use gcloud.
 
-- **`GOOGLE_ADS_ACCESS_TOKEN`** (optional): Direct access token for development/testing. When set, bypasses ADC. Not recommended for production use as tokens don't auto-refresh.
+- **`GOOGLE_ADS_ACCESS_TOKEN`** (optional): Used by unit tests; for mocked tests this can be any non-empty string. When set, bypasses ADC. For real API calls prefer ADC; if used, this must be a real OAuth 2.0 access token with the Google Ads scope and will not auto-refresh.
 
 ### Example Configuration
 ```env
