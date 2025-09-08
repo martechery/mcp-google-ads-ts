@@ -1,0 +1,39 @@
+# Source files
+src/
+test/
+scripts/
+
+# Development configs
+*.config.*
+vitest.config.ts
+tsconfig.json
+.eslintrc.*
+.prettierrc
+.prettierignore
+
+# Environment files
+.env*
+
+# Lock files (use package-lock.json for npm)
+pnpm-lock.yaml
+yarn.lock
+
+# Development dependencies
+node_modules/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git files
+.git/
+.gitignore
+
+# Other development files
+AGENTS.md

@@ -1,4 +1,4 @@
-# Google Ads MCP
+# Google Ads MCP (TypeScript)
 
 Google Ads MCP server with GCloud/ADC auth.
 
@@ -20,21 +20,34 @@ Google Ads MCP server with GCloud/ADC auth.
   - Docs: https://developers.google.com/google-ads/api/docs/get-started/dev-token
   - Application form: https://support.google.com/adspolicy/contact/new_token_application
 
-## Quick Start
+## Installation
+
+### NPM Package (Recommended)
+```bash
+# Install and run with npx
+npx mcp-google-ads-ts
+
+# Or install globally
+npm install -g mcp-google-ads-ts
+mcp-google-ads-ts
+```
+
+### Local Development
 - Package manager: pnpm recommended (pnpm-lock.yaml committed). npm also works.
 - Install: `pnpm install && pnpm build` (or `npm install && npm run build`)
 - Run (dev): `pnpm dev` (stdio transport)
 - Run (built): `node dist/cli.js`
 
 ## MCP Clients
+
+### Using NPX (Recommended)
 - Claude Desktop (JSON settings)
-  - Add this to your Claude Desktop settings JSON:
 ```json
 {
   "mcpServers": {
     "google-ads": {
-      "command": "node",
-      "args": ["/absolute/path/to/dist/cli.js"],
+      "command": "npx",
+      "args": ["mcp-google-ads-ts"],
       "env": {
         "GOOGLE_ADS_DEVELOPER_TOKEN": "YOUR_DEV_TOKEN",
         "GOOGLE_ADS_ACCOUNT_ID": "optional-10-digit-id"
@@ -43,11 +56,25 @@ Google Ads MCP server with GCloud/ADC auth.
   }
 }
 ```
-- CLI usage
-  - `node dist/cli.js` uses stdio transport. Point your MCP client to this command.
 
 - Cursor (MCP JSON)
-  - Paste into Cursor’s MCP JSON (see docs: https://docs.cursor.com/en/context/mcp#using-mcp-json):
+```json
+{
+  "mcpServers": {
+    "google-ads": {
+      "command": "npx",
+      "args": ["mcp-google-ads-ts"],
+      "env": {
+        "GOOGLE_ADS_DEVELOPER_TOKEN": "YOUR_DEV_TOKEN",
+        "GOOGLE_ADS_ACCOUNT_ID": "optional-10-digit-id"
+      }
+    }
+  }
+}
+```
+
+### Local Development
+- Claude Desktop (JSON settings)
 ```json
 {
   "mcpServers": {
@@ -62,6 +89,8 @@ Google Ads MCP server with GCloud/ADC auth.
   }
 }
 ```
+
+- CLI usage: `node dist/cli.js` uses stdio transport. Point your MCP client to this command.
 
 ## Auth Options
 - Preferred: ADC via gcloud CLI

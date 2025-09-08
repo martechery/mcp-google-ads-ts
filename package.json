@@ -1,12 +1,12 @@
 {
-  "name": "mcp-google-ads-gcloud-auth",
+  "name": "mcp-google-ads-ts",
   "version": "0.1.0",
   "description": "Model Context Protocol (MCP) server for Google Ads with GCloud/ADC auth in TypeScript",
   "private": false,
   "type": "module",
   "main": "dist/cli.js",
   "bin": {
-    "mcp-google-ads-gcloud-auth": "dist/cli.js"
+    "mcp-google-ads-ts": "dist/cli.js"
   },
   "scripts": {
     "build": "tsc -p .",
@@ -20,8 +20,15 @@
     "test:watch": "vitest",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix",
-    "debug:live": "tsx scripts/live-check.ts"
+    "debug:live": "tsx scripts/live-check.ts",
+    "prepublishOnly": "npm run build && npm run test && npm run lint",
+    "postversion": "git push && git push --tags"
   },
+  "files": [
+    "dist/**/*",
+    "README.md",
+    "LICENSE"
+  ],
   "keywords": [
     "mcp",
     "modelcontextprotocol",
@@ -30,8 +37,16 @@
     "adc",
     "typescript"
   ],
-  "author": "",
+  "author": "Juan González Cano",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-username/mcp-google-ads-ts.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-username/mcp-google-ads-ts/issues"
+  },
+  "homepage": "https://github.com/your-username/mcp-google-ads-ts#readme",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.17.5",
     "google-auth-library": "^9.14.1"
