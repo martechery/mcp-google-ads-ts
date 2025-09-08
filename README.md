@@ -44,12 +44,12 @@ TypeScript implementation of an MCP server for Google Ads API with GCloud/ADC au
 {
   "mcpServers": {
     "google-ads": {
-      "command": "npx",
+      "command": "npx", 
       "args": ["mcp-google-ads-ts"],
       "env": {
-        "GOOGLE_ADS_DEVELOPER_TOKEN": "YOUR_DEV_TOKEN",
-        "GOOGLE_ADS_ACCOUNT_ID": "1234567890",
-        "GOOGLE_ADS_MANAGER_ACCOUNT_ID": "9876543210"
+        "GOOGLE_ADS_DEVELOPER_TOKEN": "YOUR_DEV_TOKEN",       // Required: Your Google Ads Developer Token
+        "GOOGLE_ADS_ACCOUNT_ID": "1234567890",                // Optional: Default customer ID (10 digits, no dashes)
+        "GOOGLE_ADS_MANAGER_ACCOUNT_ID": "9876543210"         // Optional: MCC account ID for login customer
       }
     }
   }
@@ -94,21 +94,21 @@ Place your ADC file at `.auth/adc.json` in the project directory, or set `GOOGLE
 
 ### Optional
 
-- **`GOOGLE_ADS_ACCOUNT_ID`**: Default Google Ads account ID (10-digit customer ID without dashes). Used as the default customer for all operations when not specified explicitly.
+- **`GOOGLE_ADS_ACCOUNT_ID`** (optional): Default Google Ads account ID (10-digit customer ID without dashes). Used as the default customer for all operations when not specified explicitly.
 
-- **`GOOGLE_ADS_MANAGER_ACCOUNT_ID`**: For Multi-Customer Center (MCC) accounts - the manager account ID that acts as the login customer. Required when accessing accounts under an MCC. This is typically your MCC account ID (10-digit numeric ID, no dashes).
+- **`GOOGLE_ADS_MANAGER_ACCOUNT_ID`** (optional): For Multi-Customer Center (MCC) accounts - the manager account ID that acts as the login customer. Required when accessing accounts under an MCC. This is typically your MCC account ID (10-digit numeric ID, no dashes).
 
-- **`GOOGLE_ADS_GCLOUD_USE_CLI`**: Set to `true` to enable gcloud CLI token fallback authentication. When enabled, the server will try to get access tokens using `gcloud auth print-access-token` if ADC is not available.
+- **`GOOGLE_ADS_GCLOUD_USE_CLI`** (optional): Set to `true` to enable gcloud CLI token fallback authentication. When enabled, the server will try to get access tokens using `gcloud auth print-access-token` if ADC is not available.
 
-- **`GOOGLE_APPLICATION_CREDENTIALS`**: Path to a Google service account key file or ADC credentials file. Takes precedence over default ADC locations.
+- **`GOOGLE_APPLICATION_CREDENTIALS`** (optional): Path to a Google service account key file or ADC credentials file. Takes precedence over default ADC locations.
 
-- **`GOOGLE_ADS_QUOTA_PROJECT_ID`**: GCP project ID used for quota/billing. Helps avoid 403 errors due to missing quota. Typically your active gcloud project ID.
+- **`GOOGLE_ADS_QUOTA_PROJECT_ID`** (optional): GCP project ID used for quota/billing. Helps avoid 403 errors due to missing quota. Typically your active gcloud project ID.
 
-- **`GOOGLE_ADS_API_VERSION`**: API version string (e.g., v19, v20, v21). Defaults to v19 if unset.
+- **`GOOGLE_ADS_API_VERSION`** (optional): API version string (e.g., v19, v20, v21). Defaults to v19 if unset.
 
-- **`GOOGLE_OAUTH_CLIENT_ID`** and **`GOOGLE_OAUTH_CLIENT_SECRET`**: Desktop OAuth client credentials used by `manage_auth` with `action: "oauth_login"` to create local ADC. Only needed if you cannot use gcloud.
+- **`GOOGLE_OAUTH_CLIENT_ID`** and **`GOOGLE_OAUTH_CLIENT_SECRET`** (optional): Desktop OAuth client credentials used by `manage_auth` with `action: "oauth_login"` to create local ADC. Only needed if you cannot use gcloud.
 
-- **`GOOGLE_ADS_ACCESS_TOKEN`**: Direct access token for development/testing. When set, bypasses ADC. Not recommended for production use as tokens don't auto-refresh.
+- **`GOOGLE_ADS_ACCESS_TOKEN`** (optional): Direct access token for development/testing. When set, bypasses ADC. Not recommended for production use as tokens don't auto-refresh.
 
 ### Example Configuration
 ```env
@@ -139,9 +139,10 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS)
       "command": "npx",
       "args": ["mcp-google-ads-ts"],
       "env": {
-        "GOOGLE_ADS_DEVELOPER_TOKEN": "YOUR_DEV_TOKEN",
-        "GOOGLE_ADS_ACCOUNT_ID": "1234567890",
-        "GOOGLE_ADS_MANAGER_ACCOUNT_ID": "9876543210"
+        "GOOGLE_ADS_DEVELOPER_TOKEN": "YOUR_DEV_TOKEN",       // Required: Your Google Ads Developer Token
+        "GOOGLE_ADS_ACCOUNT_ID": "1234567890",                // Optional: Default customer ID (10 digits, no dashes)
+        "GOOGLE_ADS_MANAGER_ACCOUNT_ID": "9876543210",        // Optional: MCC account ID for login customer
+        "GOOGLE_ADS_QUOTA_PROJECT_ID": "my-gcp-project"       // Optional: GCP project for quota/billing
       }
     }
   }
@@ -153,10 +154,17 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS)
 Install and configure with a single command:
 
 ```bash
+# Required
+claude mcp add google-ads \\
+  -e GOOGLE_ADS_DEVELOPER_TOKEN=your-token \\
+  -- npx mcp-google-ads-ts
+
+# With optional parameters
 claude mcp add google-ads \\
   -e GOOGLE_ADS_DEVELOPER_TOKEN=your-token \\
   -e GOOGLE_ADS_ACCOUNT_ID=1234567890 \\
   -e GOOGLE_ADS_MANAGER_ACCOUNT_ID=9876543210 \\
+  -e GOOGLE_ADS_QUOTA_PROJECT_ID=my-gcp-project \\
   -- npx mcp-google-ads-ts
 ```
 
@@ -173,9 +181,10 @@ Add to your MCP settings in Cursor. Go to Cursor Settings > Features > Model Con
       "command": "npx",
       "args": ["mcp-google-ads-ts"],
       "env": {
-        "GOOGLE_ADS_DEVELOPER_TOKEN": "YOUR_DEV_TOKEN",
-        "GOOGLE_ADS_ACCOUNT_ID": "1234567890",
-        "GOOGLE_ADS_MANAGER_ACCOUNT_ID": "9876543210"
+        "GOOGLE_ADS_DEVELOPER_TOKEN": "YOUR_DEV_TOKEN",       // Required: Your Google Ads Developer Token
+        "GOOGLE_ADS_ACCOUNT_ID": "1234567890",                // Optional: Default customer ID (10 digits, no dashes)
+        "GOOGLE_ADS_MANAGER_ACCOUNT_ID": "9876543210",        // Optional: MCC account ID for login customer
+        "GOOGLE_ADS_API_VERSION": "v19"                       // Optional: API version (defaults to v19)
       }
     }
   }
@@ -199,9 +208,10 @@ Install the MCP extension and add the server configuration:
   "command": "npx",
   "args": ["mcp-google-ads-ts"],
   "env": {
-    "GOOGLE_ADS_DEVELOPER_TOKEN": "YOUR_DEV_TOKEN",
-    "GOOGLE_ADS_ACCOUNT_ID": "1234567890",
-    "LOGIN_CUSTOMER_ID": "9876543210"
+    "GOOGLE_ADS_DEVELOPER_TOKEN": "YOUR_DEV_TOKEN",       // Required: Your Google Ads Developer Token
+    "GOOGLE_ADS_ACCOUNT_ID": "1234567890",                // Optional: Default customer ID (10 digits, no dashes)
+    "GOOGLE_ADS_MANAGER_ACCOUNT_ID": "9876543210",        // Optional: MCC account ID for login customer
+    "GOOGLE_ADS_GCLOUD_USE_CLI": "true"                   // Optional: Enable gcloud CLI token fallback
   }
 }
 ```
@@ -235,9 +245,10 @@ npm run build
       "command": "node",
       "args": ["/absolute/path/to/mcp-google-ads-ts/dist/cli.js"],
       "env": {
-        "GOOGLE_ADS_DEVELOPER_TOKEN": "YOUR_DEV_TOKEN",
-        "GOOGLE_ADS_ACCOUNT_ID": "1234567890",
-        "GOOGLE_ADS_MANAGER_ACCOUNT_ID": "9876543210"
+        "GOOGLE_ADS_DEVELOPER_TOKEN": "YOUR_DEV_TOKEN",       // Required: Your Google Ads Developer Token
+        "GOOGLE_ADS_ACCOUNT_ID": "1234567890",                // Optional: Default customer ID (10 digits, no dashes)
+        "GOOGLE_ADS_MANAGER_ACCOUNT_ID": "9876543210",        // Optional: MCC account ID for login customer
+        "GOOGLE_APPLICATION_CREDENTIALS": "/path/to/adc.json" // Optional: Path to ADC credentials file
       }
     }
   }
