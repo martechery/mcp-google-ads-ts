@@ -82,14 +82,18 @@ export async function extractCurrentAuthDetails(): Promise<ExtractedAuthDetails>
  */
 export function createTestAuthEnv(overrides: Partial<NodeJS.ProcessEnv>): () => void {
   const originalEnv: Record<string, string | undefined> = {};
-  
+
   // Store original values
   for (const key in overrides) {
     originalEnv[key] = process.env[key];
   }
 
-  // Apply overrides
-  Object.assign(process.env, overrides);
+  // Apply overrides (delete keys when override is undefined)
+  for (const key in overrides) {
+    const value = overrides[key as keyof NodeJS.ProcessEnv];
+    if (value === undefined) delete process.env[key];
+    else process.env[key] = value as unknown as string;
+  }
 
   // Return cleanup function
   return () => {
@@ -97,7 +101,7 @@ export function createTestAuthEnv(overrides: Partial<NodeJS.ProcessEnv>): () => 
       if (originalEnv[key] === undefined) {
         delete process.env[key];
       } else {
-        process.env[key] = originalEnv[key];
+        process.env[key] = originalEnv[key] as string;
       }
     }
   };

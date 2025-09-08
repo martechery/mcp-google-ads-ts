@@ -63,20 +63,52 @@ export function registerTools(server: ToolServer) {
       // Default: execute subprocess actions unless explicitly disabled
       const allowSub = input?.allow_subprocess !== false;
 
-      async function isGcloudAvailable(): Promise<boolean> {
+      const useLocalExec = process.env.VITEST_REAL === '1';
+
+      // Minimal local exec wrapper to avoid test-mocking pitfalls
+      function localExec(cmd: string, args: string[], opts?: { timeoutMs?: number }): Promise<{ code: number; stdout: string; stderr: string }>{
+        return new Promise((resolve) => {
+          try {
+            import('node:child_process').then(({ spawn }) => {
+              const child = spawn(cmd, args, { stdio: ['ignore', 'pipe', 'pipe'] });
+              let out = '';
+              let err = '';
+              child.stdout?.on('data', (d) => { try { out += String(d); } catch { void 0; } });
+              child.stderr?.on('data', (d) => { try { err += String(d); } catch { void 0; } });
+              let timeout: NodeJS.Timeout | undefined;
+              const finalize = (code: number) => { if (timeout) clearTimeout(timeout); resolve({ code, stdout: out, stderr: err }); };
+              child.on('error', () => finalize(1));
+              child.on('close', (code) => finalize(code ?? 1));
+              if (opts?.timeoutMs && opts.timeoutMs > 0) {
+                timeout = setTimeout(() => { try { child.kill('SIGKILL'); } catch { void 0; } }, opts.timeoutMs);
+              }
+            }).catch(() => resolve({ code: 1, stdout: '', stderr: '' }));
+          } catch {
+            resolve({ code: 1, stdout: '', stderr: '' });
+          }
+        });
+      }
+
+      async function execCmd(cmd: string, args: string[], opts?: { timeoutMs?: number }) {
+        if (useLocalExec) return localExec(cmd, args, opts);
         try {
-          const { execCmd } = await import('./utils/exec.js');
-          const res = await execCmd('gcloud', ['--version'], { timeoutMs: 5_000 });
-          return res.code === 0;
+          const mod = await import('./utils/exec.js');
+          const run = (mod as any).execCmd as (c: string, a: string[], o?: { timeoutMs?: number }) => Promise<{ code: number; stdout: string; stderr: string }>;
+          return run(cmd, args, opts);
         } catch {
-          return false;
+          return localExec(cmd, args, opts);
         }
+      }
+
+      async function isGcloudAvailable(): Promise<boolean> {
+        const res = await execCmd('gcloud', ['--version'], { timeoutMs: 5_000 });
+        return res.code === 0;
       }
 
       if (action === 'status') {
         const accountId = process.env.GOOGLE_ADS_ACCOUNT_ID || "(not set)";
         const managerAccountId = process.env.GOOGLE_ADS_MANAGER_ACCOUNT_ID || "(not set)";
-        const developerToken = process.env.GOOGLE_ADS_DEVELOPER_TOKEN || "(not set)";
+        const developerTokenRaw = process.env.GOOGLE_ADS_DEVELOPER_TOKEN;
         const gacEnv = process.env.GOOGLE_APPLICATION_CREDENTIALS || "(not set)";
 
         const lines: string[] = [
@@ -86,7 +118,7 @@ export function registerTools(server: ToolServer) {
           `  GOOGLE_APPLICATION_CREDENTIALS: ${gacEnv}`,
           `  GOOGLE_ADS_ACCOUNT_ID: ${accountId}`,
           `  GOOGLE_ADS_MANAGER_ACCOUNT_ID: ${managerAccountId}`,
-          `  GOOGLE_ADS_DEVELOPER_TOKEN: ${developerToken ? "(set)" : "(not set)"}`,
+          `  GOOGLE_ADS_DEVELOPER_TOKEN: ${developerTokenRaw ? "(set)" : "(not set)"}`,
           'Notes:',
           "- ADC via gcloud is preferred for stability and auto-refresh.",
           '- You can also use an existing authorized_user JSON via GOOGLE_APPLICATION_CREDENTIALS.',
@@ -162,6 +194,7 @@ export function registerTools(server: ToolServer) {
         const clientSecret = (process.env.GOOGLE_OAUTH_CLIENT_SECRET || '').trim();
         if (!clientId || !clientSecret) {
           const lines = [
+            'OAuth credentials not available',
             'Missing GOOGLE_OAUTH_CLIENT_ID and/or GOOGLE_OAUTH_CLIENT_SECRET.',
             'Set both env vars to a Desktop app OAuth client and retry.',
             'Preferred path remains: gcloud auth application-default login with Ads scope.',
@@ -222,7 +255,6 @@ export function registerTools(server: ToolServer) {
           ].join('\n');
           return { content: [{ type: 'text', text }] };
         }
-        const { execCmd } = await import('./utils/exec.js');
         const { code, stdout, stderr } = await execCmd('gcloud', ['config', 'configurations', 'activate', name]);
         const lines = [
           `gcloud switch (${name}) exit: ${code}`,
@@ -246,7 +278,6 @@ export function registerTools(server: ToolServer) {
           ].join('\n');
           return { content: [{ type: 'text', text }] };
         }
-        const { execCmd } = await import('./utils/exec.js');
         const { code, stdout, stderr } = await execCmd('gcloud', ['config', 'set', 'project', projectId]);
         const text = [
           `gcloud set project exit: ${code}`,
@@ -268,7 +299,6 @@ export function registerTools(server: ToolServer) {
           ].join('\n');
           return { content: [{ type: 'text', text }] };
         }
-        const { execCmd } = await import('./utils/exec.js');
         const { code, stdout, stderr } = await execCmd('gcloud', ['auth', 'application-default', 'set-quota-project', projectId]);
         const text = [
           `gcloud set-quota-project exit: ${code}`,
@@ -296,7 +326,6 @@ export function registerTools(server: ToolServer) {
           ].join('\n');
           return { content: [{ type: 'text', text }] };
         }
-        const { execCmd } = await import('./utils/exec.js');
         const step1 = await execCmd('gcloud', ['auth', 'application-default', 'login', '--scopes=https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/adwords']);
         // Verify by printing a token (will also surface scope issues)
         const step2 = await execCmd('gcloud', ['auth', 'application-default', 'print-access-token']);
@@ -317,6 +346,9 @@ export function registerTools(server: ToolServer) {
             ? 'Ads scope check after refresh: OK'
             : (step2.code === 0 ? 'Ads scope check after refresh: OK (token printed)' : `Ads scope check after refresh: ${check ? `HTTP ${check.status}` : 'unknown'}`),
         ].filter(Boolean);
+        if (step1.code !== 0) {
+          lines.push('Install: https://cloud.google.com/sdk/docs/install');
+        }
         return { content: [{ type: 'text', text: lines.join('\n') }] };
       }
 
