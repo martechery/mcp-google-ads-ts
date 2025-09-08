@@ -4,21 +4,26 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js CI](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
 
-TypeScript implementation of an MCP server for Google Ads API with GCloud/ADC authentication. Provides tools for campaign management, performance reporting, and account operations.
+TypeScript implementation of an MCP server for Google Ads API with GCloud/ADC authentication. Provides tools for campaign management, performance reporting, and account operations with Multi-Customer Center (MCC) support.
 
 ## Table of Contents
 
 - [Prerequisites](#prerequisites)
 - [Quick Start](#quick-start)
-- [Configuration](#configuration)
+- [Authentication](#authentication)
+- [Environment Variables](#environment-variables)
 - [Client-Specific Instructions](#client-specific-instructions)
+  - [Claude Desktop](#claude-desktop)
+  - [Claude Code](#claude-code)
+  - [Cursor](#cursor)
+  - [VS Code](#vs-code)
+  - [Local Installation](#local-installation)
 - [Available Tools](#available-tools)
   - [1. manage_auth](#1-manage_auth---authentication-management)
   - [2. list_resources](#2-list_resources---list-google-ads-resources)
   - [3. execute_gaql_query](#3-execute_gaql_query---execute-google-ads-query-language-queries)
   - [4. get_performance](#4-get_performance---get-performance-metrics)
   - [5. gaql_help](#5-gaql_help---google-ads-query-language-reference)
-- [Advanced Configuration](#advanced-configuration)
 - [Development](#development)
 - [License](#license)
 
@@ -33,9 +38,7 @@ TypeScript implementation of an MCP server for Google Ads API with GCloud/ADC au
 
 ## Quick Start
 
-### 1. Install and run the MCP server
-
-#### Using npx (Recommended)
+### Using npx (Recommended)
 
 ```json
 {
@@ -45,57 +48,81 @@ TypeScript implementation of an MCP server for Google Ads API with GCloud/ADC au
       "args": ["mcp-google-ads-ts"],
       "env": {
         "GOOGLE_ADS_DEVELOPER_TOKEN": "YOUR_DEV_TOKEN",
-        "GOOGLE_ADS_ACCOUNT_ID": "optional-10-digit-id"
+        "GOOGLE_ADS_ACCOUNT_ID": "1234567890",
+        "LOGIN_CUSTOMER_ID": "9876543210"
       }
     }
   }
 }
 ```
 
-#### Using local installation
+## Authentication
 
-```json
-{
-  "mcpServers": {
-    "google-ads": {
-      "command": "node",
-      "args": ["/path/to/mcp-google-ads-ts/dist/cli.js"],
-      "env": {
-        "GOOGLE_ADS_DEVELOPER_TOKEN": "YOUR_DEV_TOKEN",
-        "GOOGLE_ADS_ACCOUNT_ID": "optional-10-digit-id"
-      }
-    }
-  }
-}
-```
+The server uses Google Application Default Credentials (ADC) for secure authentication. This is the recommended approach as it provides automatic token refresh and secure credential management.
 
-### 2. Set up authentication
+### How Authentication Works
 
-The server supports Application Default Credentials (ADC) via gcloud:
+1. **Application Default Credentials (ADC)**: The server first attempts to use ADC, which automatically finds credentials in this order:
+   - Environment variable `GOOGLE_APPLICATION_CREDENTIALS` pointing to a credential file
+   - User credentials from `gcloud auth application-default login`
+   - Service account attached to the compute resource (GCE, Cloud Functions, etc.)
 
+2. **CLI Token Fallback**: If enabled with `GOOGLE_ADS_GCLOUD_USE_CLI=true`, the server can fall back to using `gcloud auth print-access-token` for authentication
+
+3. **Automatic Token Refresh**: Both methods handle token refresh automatically
+
+### Setting Up Authentication
+
+#### Method 1: ADC via gcloud (Recommended)
 ```bash
 gcloud auth application-default login --scopes=https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/adwords
 ```
 
-## Configuration
+#### Method 2: Service Account Key File
+```bash
+export GOOGLE_APPLICATION_CREDENTIALS="/path/to/service-account-key.json"
+```
 
-### Environment Variables
+#### Method 3: Existing ADC File
+Place your ADC file at `.auth/adc.json` in the project directory, or set `GOOGLE_APPLICATION_CREDENTIALS` to point to your ADC JSON file.
 
+## Environment Variables
+
+### Required
+
+- **`GOOGLE_ADS_DEVELOPER_TOKEN`**: Your Google Ads API developer token (required for all API calls)
+
+### Optional
+
+- **`GOOGLE_ADS_ACCOUNT_ID`**: Default Google Ads account ID (10-digit customer ID without dashes). Used as the default customer for all operations when not specified explicitly.
+
+- **`LOGIN_CUSTOMER_ID`**: For Multi-Customer Center (MCC) accounts - the customer ID that acts as the login customer. Required when accessing accounts under an MCC. This is typically your MCC account ID.
+
+- **`GOOGLE_ADS_GCLOUD_USE_CLI`**: Set to `true` to enable gcloud CLI token fallback authentication. When enabled, the server will try to get access tokens using `gcloud auth print-access-token` if ADC is not available.
+
+- **`GOOGLE_APPLICATION_CREDENTIALS`**: Path to a Google service account key file or ADC credentials file. Takes precedence over default ADC locations.
+
+### Example Configuration
 ```env
 # Required
-GOOGLE_ADS_DEVELOPER_TOKEN=your-developer-token
+GOOGLE_ADS_DEVELOPER_TOKEN=your-developer-token-here
 
-# Optional
-GOOGLE_ADS_ACCOUNT_ID=1234567890          # Default account ID
-GOOGLE_ADS_GCLOUD_USE_CLI=true           # Use CLI token fallback
-GOOGLE_APPLICATION_CREDENTIALS=/path/to/adc.json  # Custom ADC file path
+# Optional - Default account
+GOOGLE_ADS_ACCOUNT_ID=1234567890
+
+# Optional - For MCC accounts
+LOGIN_CUSTOMER_ID=9876543210
+
+# Optional - Authentication
+GOOGLE_ADS_GCLOUD_USE_CLI=true
+GOOGLE_APPLICATION_CREDENTIALS=/path/to/credentials.json
 ```
 
 ## Client-Specific Instructions
 
 ### Claude Desktop
 
-Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
+Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\\Claude\\claude_desktop_config.json` (Windows):
 
 ```json
 {
@@ -105,7 +132,8 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
       "args": ["mcp-google-ads-ts"],
       "env": {
         "GOOGLE_ADS_DEVELOPER_TOKEN": "YOUR_DEV_TOKEN",
-        "GOOGLE_ADS_ACCOUNT_ID": "optional-10-digit-id"
+        "GOOGLE_ADS_ACCOUNT_ID": "1234567890",
+        "LOGIN_CUSTOMER_ID": "9876543210"
       }
     }
   }
@@ -114,17 +142,107 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 
 ### Claude Code
 
+Install and configure with a single command:
+
 ```bash
-claude mcp add google-ads -e GOOGLE_ADS_DEVELOPER_TOKEN=your-token -- npx mcp-google-ads-ts
+claude mcp add google-ads \\
+  -e GOOGLE_ADS_DEVELOPER_TOKEN=your-token \\
+  -e GOOGLE_ADS_ACCOUNT_ID=1234567890 \\
+  -e LOGIN_CUSTOMER_ID=9876543210 \\
+  -- npx mcp-google-ads-ts
 ```
 
-### Other MCP Clients
+For more details, see the [Claude Code MCP documentation](https://docs.anthropic.com/en/docs/claude-code/mcp#installing-mcp-servers).
 
-Consult your client's documentation for MCP server configuration. The key details:
+### Cursor
 
-- **Command**: `npx mcp-google-ads-ts` or `node /path/to/dist/cli.js`
-- **Required env**: `GOOGLE_ADS_DEVELOPER_TOKEN`
-- **Optional env**: `GOOGLE_ADS_ACCOUNT_ID`, `GOOGLE_ADS_GCLOUD_USE_CLI`, `GOOGLE_APPLICATION_CREDENTIALS`
+Add to your MCP settings in Cursor. Go to Cursor Settings > Features > Model Context Protocol:
+
+```json
+{
+  "mcpServers": {
+    "google-ads": {
+      "command": "npx",
+      "args": ["mcp-google-ads-ts"],
+      "env": {
+        "GOOGLE_ADS_DEVELOPER_TOKEN": "YOUR_DEV_TOKEN",
+        "GOOGLE_ADS_ACCOUNT_ID": "1234567890",
+        "LOGIN_CUSTOMER_ID": "9876543210"
+      }
+    }
+  }
+}
+```
+
+For detailed setup instructions, see the [Cursor MCP documentation](https://docs.cursor.com/en/context/mcp).
+
+### VS Code
+
+Install the MCP extension and add the server configuration:
+
+1. Install the "MCP Manager" extension from the marketplace
+2. Open Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`)
+3. Run "MCP: Add Server"
+4. Configure the server:
+
+```json
+{
+  "name": "google-ads",
+  "command": "npx",
+  "args": ["mcp-google-ads-ts"],
+  "env": {
+    "GOOGLE_ADS_DEVELOPER_TOKEN": "YOUR_DEV_TOKEN",
+    "GOOGLE_ADS_ACCOUNT_ID": "1234567890",
+    "LOGIN_CUSTOMER_ID": "9876543210"
+  }
+}
+```
+
+For more information, see the [VS Code MCP documentation](https://code.visualstudio.com/docs/copilot/customization/mcp-servers).
+
+### Local Installation
+
+For local development or when you want to run from source:
+
+#### 1. Clone and Build
+
+```bash
+# Clone the repository
+git clone https://github.com/your-username/mcp-google-ads-ts.git
+cd mcp-google-ads-ts
+
+# Install dependencies
+npm install
+
+# Build the project
+npm run build
+```
+
+#### 2. Configure Your MCP Client
+
+```json
+{
+  "mcpServers": {
+    "google-ads": {
+      "command": "node",
+      "args": ["/absolute/path/to/mcp-google-ads-ts/dist/cli.js"],
+      "env": {
+        "GOOGLE_ADS_DEVELOPER_TOKEN": "YOUR_DEV_TOKEN",
+        "GOOGLE_ADS_ACCOUNT_ID": "1234567890",
+        "LOGIN_CUSTOMER_ID": "9876543210"
+      }
+    }
+  }
+}
+```
+
+#### 3. Development Mode
+
+For development with auto-reload:
+
+```bash
+npm run dev
+```
 
 ## Available Tools
 
@@ -136,7 +254,24 @@ Consult your client's documentation for MCP server configuration. The key detail
 }
 ```
 
-Manages Google Ads API authentication. Checks current authentication status, validates tokens, and can execute gcloud commands to fix authentication issues.
+**Comprehensive authentication management tool** that:
+
+- **Checks authentication status**: Validates current ADC credentials and Google Ads API access
+- **Detects missing scopes**: Identifies if your credentials lack required Google Ads scopes
+- **Validates developer token**: Confirms your developer token is working with the API
+- **Provides fix commands**: When `allow_subprocess=true` (default), automatically executes gcloud commands to fix authentication issues
+- **Handles MCC accounts**: Validates `LOGIN_CUSTOMER_ID` for Multi-Customer Center setups
+- **Troubleshooting guidance**: Provides detailed error messages and resolution steps
+
+**Common use cases:**
+- Run this first when setting up the server
+- Troubleshoot authentication issues
+- Verify MCC account configuration
+- Re-authenticate after token expiration
+
+**Example usage:**
+- `manage_auth` - Full authentication check with automatic fixes
+- `manage_auth { "allow_subprocess": false }` - Check status only, don't execute fix commands
 
 ### 2. `list_resources` - List Google Ads resources
 
@@ -149,7 +284,15 @@ Manages Google Ads API authentication. Checks current authentication status, val
 }
 ```
 
-Lists various Google Ads resources like accounts, campaigns, ad groups, ads, keywords, etc.
+Lists various Google Ads resources with support for hierarchical relationships and multiple output formats.
+
+**Supported resource types:**
+- `accounts` - List accessible customer accounts
+- `campaigns` - List campaigns
+- `ad_groups` - List ad groups
+- `ads` - List ads
+- `keywords` - List keywords
+- `extensions` - List ad extensions
 
 ### 3. `execute_gaql_query` - Execute Google Ads Query Language queries
 
@@ -165,7 +308,7 @@ Lists various Google Ads resources like accounts, campaigns, ad groups, ads, key
 }
 ```
 
-Executes custom GAQL queries for advanced data retrieval and analysis.
+Executes custom GAQL queries for advanced data retrieval and analysis with automatic pagination support.
 
 ### 4. `get_performance` - Get performance metrics
 
@@ -184,7 +327,7 @@ Executes custom GAQL queries for advanced data retrieval and analysis.
 }
 ```
 
-Retrieves performance metrics and reports for campaigns, ad groups, ads, and keywords.
+Retrieves performance metrics and reports for campaigns, ad groups, ads, and keywords with flexible filtering and segmentation.
 
 ### 5. `gaql_help` - Google Ads Query Language reference
 
@@ -195,26 +338,7 @@ Retrieves performance metrics and reports for campaigns, ad groups, ads, and key
 }
 ```
 
-Provides help and documentation for Google Ads Query Language (GAQL), including available resources, fields, functions, and operators.
-
-## Advanced Configuration
-
-### Authentication Options
-
-#### Application Default Credentials (Recommended)
-```bash
-gcloud auth application-default login --scopes=https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/adwords
-```
-
-#### Existing ADC File
-Set `GOOGLE_APPLICATION_CREDENTIALS` to point to your ADC JSON file, or place it at `.auth/adc.json` in the project directory.
-
-#### CLI Token Fallback
-Set `GOOGLE_ADS_GCLOUD_USE_CLI=true` to enable gcloud CLI token fallback for authentication.
-
-### Error Handling
-
-The server includes comprehensive error handling and mapping for Google Ads API errors, providing clear error messages and suggestions for resolution.
+Provides interactive help and documentation for Google Ads Query Language (GAQL), including available resources, fields, functions, and operators.
 
 ## Development
 
@@ -225,21 +349,22 @@ The server includes comprehensive error handling and mapping for Google Ads API 
 git clone https://github.com/your-username/mcp-google-ads-ts.git
 cd mcp-google-ads-ts
 npm install
-cp .env.example .env  # Configure your environment variables
 
-# 2. Development commands
-npm run dev    # Development mode
-npm test       # Run tests
-npm run lint   # Check code quality
-npm run build  # Production build
+# 2. Set up environment
+cp .env.example .env
+# Edit .env with your credentials
 
-# 3. Add to your MCP client (See "Using local installation")
+# 3. Development commands
+npm run dev     # Development mode with auto-reload
+npm test        # Run all tests
+npm run build   # Production build
+npm run lint    # Check code quality
 ```
 
 ### Running Tests
 
 ```bash
-# Unit tests
+# Unit tests only
 npm run test:unit
 
 # Integration tests (requires real Google Ads API access)
@@ -260,18 +385,18 @@ src/
 ├── schemas.ts          # Zod schemas for validation
 ├── headers.ts          # API request headers
 ├── tools/              # Individual tool implementations
-│   ├── accounts.ts
-│   ├── fields.ts
-│   ├── gaql.ts
-│   ├── performance.ts
-│   └── oauth.ts
+│   ├── accounts.ts     # Account listing
+│   ├── fields.ts       # Google Ads field metadata
+│   ├── gaql.ts         # GAQL query execution
+│   ├── performance.ts  # Performance reporting
+│   └── oauth.ts        # Authentication management
 └── utils/              # Utility functions
-    ├── currency.ts
-    ├── errorMapping.ts
-    ├── exec.ts
-    ├── formatCsv.ts
-    ├── formatTable.ts
-    └── formatCustomerId.ts
+    ├── currency.ts     # Currency formatting
+    ├── errorMapping.ts # API error handling
+    ├── exec.ts         # Command execution
+    ├── formatCsv.ts    # CSV formatting
+    ├── formatTable.ts  # Table formatting
+    └── formatCustomerId.ts  # Customer ID formatting
 ```
 
 ## License
