@@ -16,6 +16,10 @@ export function mapAdsErrorMsg(status: number, errorText = ""): string | undefin
   if (status === 400 && (txt.includes('queryerror') || txt.includes('parse') || txt.includes('invalid query') || txt.includes('syntax'))) {
     return 'GAQL syntax error. Validate SELECT/FROM/WHERE and field names via list_resources.';
   }
+  // Quota and rate limit errors
+  if (status === 429 || txt.includes('quota exceeded') || txt.includes('rate limit')) {
+    return 'API quota or rate limit exceeded. Wait and retry, or check quota limits in Google Cloud Console.';
+  }
   // Permission denials
   if (status === 403) {
     return 'Permission denied. Check account access, login-customer-id, and Ads API permissions.';
