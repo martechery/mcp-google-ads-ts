@@ -94,7 +94,7 @@ Use `manage_auth { "action": "oauth_login" }` with `GOOGLE_OAUTH_CLIENT_ID` and 
 
 - **`GOOGLE_ADS_ACCOUNT_ID`** (optional): Default Google Ads account ID (10-digit customer ID without dashes). Used as the default customer for all operations when not specified explicitly.
 
-- **`GOOGLE_ADS_MANAGER_ACCOUNT_ID`** (optional): For Multi-Customer Center (MCC) accounts - the manager account ID that acts as the login customer. Required when accessing accounts under an MCC. This is typically your MCC account ID (10-digit numeric ID, no dashes).
+- **`GOOGLE_ADS_MANAGER_ACCOUNT_ID`** (optional): For Multi-Customer Center (MCC) accounts - the manager account ID that acts as the login customer. Required when accessing accounts under an MCC. This is typically your MCC account ID (10-digit numeric ID, no dashes). Note: you can override this per call using the `login_customer_id` (aka MCC/manager account id) parameter in tools like `execute_gaql_query` and `get_performance`.
 
 
 - **`GOOGLE_APPLICATION_CREDENTIALS`** (optional): Path to an ADC credentials file (authorized_user JSON). Takes precedence over default ADC locations.
@@ -370,13 +370,14 @@ Lists various Google Ads resources with support for hierarchical relationships a
 
 ```typescript
 {
-  query: string,             // Required: GAQL query
-  customer_id?: string,      // Customer ID (uses default if not specified)
-  output_format?: string,    // Output format (table, json, csv)
-  page_size?: number,        // Results per page (default: 1000)
-  page_token?: string,       // Pagination token
-  auto_paginate?: boolean,   // Auto-paginate through all results
-  max_pages?: number         // Maximum pages to fetch
+  query: string,               // Required: GAQL query
+  customer_id?: string,        // Customer ID (uses default if not specified)
+  login_customer_id?: string,  // Optional: MCC/manager account ID for this call (overrides env)
+  output_format?: string,      // Output format (table, json, csv)
+  page_size?: number,          // Results per page (default: 1000)
+  page_token?: string,         // Pagination token
+  auto_paginate?: boolean,     // Auto-paginate through all results
+  max_pages?: number           // Maximum pages to fetch
 }
 ```
 
@@ -394,16 +395,17 @@ Executes custom GAQL queries for advanced data retrieval and analysis with autom
 
 ```typescript
 {
-  level: string,             // Required: Reporting level (account, campaign, ad_group, ad, keyword)
-  customer_id?: string,      // Customer ID (uses default if not specified)
-  date_range?: string,       // Date range (LAST_7_DAYS, LAST_30_DAYS, etc.)
-  days?: number,             // Custom days back from today
-  metrics?: string[],        // Specific metrics to retrieve
-  segments?: string[],       // Segmentation dimensions
-  filters?: object,          // Query filters
-  output_format?: string,    // Output format (table, json, csv)
-  page_size?: number,        // Results per page
-  auto_paginate?: boolean    // Auto-paginate through all results
+  level: string,               // Required: Reporting level (account, campaign, ad_group, ad, keyword)
+  customer_id?: string,        // Customer ID (uses default if not specified)
+  login_customer_id?: string,  // Optional: MCC/manager account ID for this call (overrides env)
+  date_range?: string,         // Date range (LAST_7_DAYS, LAST_30_DAYS, etc.)
+  days?: number,               // Custom days back from today
+  metrics?: string[],          // Specific metrics to retrieve
+  segments?: string[],         // Segmentation dimensions
+  filters?: object,            // Query filters
+  output_format?: string,      // Output format (table, json, csv)
+  page_size?: number,          // Results per page
+  auto_paginate?: boolean      // Auto-paginate through all results
 }
 ```
 

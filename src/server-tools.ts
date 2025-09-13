@@ -41,6 +41,13 @@ function normalizeArgs<T extends Record<string, any>>(input: T): T {
   if (o.outputFormat && !o.output_format) o.output_format = o.outputFormat;
   if (o.resource && !o.kind) o.kind = o.resource;
   if (o.resource_type && !o.kind) o.kind = o.resource_type;
+  // Per-call login customer (MCC/manager) aliases → snake_case
+  if (o.loginCustomerId && !o.login_customer_id) o.login_customer_id = o.loginCustomerId;
+  if (o.mcc && !o.login_customer_id) o.login_customer_id = o.mcc;
+  if (o.mcc_id && !o.login_customer_id) o.login_customer_id = o.mcc_id;
+  if (o.mccId && !o.login_customer_id) o.login_customer_id = o.mccId;
+  if (o.manager_account_id && !o.login_customer_id) o.login_customer_id = o.manager_account_id;
+  if (o.managerAccountId && !o.login_customer_id) o.login_customer_id = o.managerAccountId;
   // Date range convenience (very limited mapping)
   if (typeof o.date_range === 'string' && !o.days) {
     const dr = o.date_range.toUpperCase();
@@ -360,7 +367,7 @@ export function registerTools(server: ToolServer) {
   addTool(
     server,
     "execute_gaql_query",
-    "Execute GAQL. Aliases accepted: customerId, pageSize, pageToken, autoPaginate, maxPages, outputFormat.",
+    "Execute GAQL. Aliases accepted: customerId, pageSize, pageToken, autoPaginate, maxPages, outputFormat. Optional: login_customer_id (aka MCC/manager account id) overrides env.",
     ExecuteGaqlZ,
     async (_input: any) => {
       const input = normalizeArgs(_input || {});
@@ -398,7 +405,7 @@ export function registerTools(server: ToolServer) {
       let lastToken: string | undefined;
       let pageCount = 0;
       do {
-        const res = await executeGaql({ customerId: input.customer_id, query: input.query, pageSize, pageToken });
+        const res = await executeGaql({ customerId: input.customer_id, query: input.query, pageSize, pageToken, loginCustomerId: input.login_customer_id });
         if (!res.ok) {
           const hint = mapAdsErrorMsg(res.status, res.errorText || '');
           const lines = [`Error executing query (status ${res.status}): ${res.errorText || ''}`];
@@ -447,7 +454,7 @@ export function registerTools(server: ToolServer) {
   addTool(
     server,
     "get_performance",
-    "Get performance (level: account|campaign|ad_group|ad). Aliases accepted: customerId, pageSize, pageToken, autoPaginate, maxPages, outputFormat.",
+    "Get performance (level: account|campaign|ad_group|ad). Aliases accepted: customerId, pageSize, pageToken, autoPaginate, maxPages, outputFormat. Optional: login_customer_id (aka MCC/manager account id) overrides env.",
     GetPerformanceZ,
     async (_input: any) => {
       const input = normalizeArgs(_input || {});
@@ -488,7 +495,7 @@ export function registerTools(server: ToolServer) {
       let lastToken: string | undefined;
       let pageCount = 0;
       do {
-        const res = await executeGaql({ customerId: input.customer_id, query, pageSize, pageToken });
+        const res = await executeGaql({ customerId: input.customer_id, query, pageSize, pageToken, loginCustomerId: input.login_customer_id });
         if (!res.ok) {
           const hint = mapAdsErrorMsg(res.status, res.errorText || '');
           const lines = [`Error executing performance query (status ${res.status}): ${res.errorText || ''}`];

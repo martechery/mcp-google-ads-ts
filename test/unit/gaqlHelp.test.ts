@@ -8,13 +8,14 @@ describe('gaql_help tool', () => {
   beforeEach(() => { vi.resetModules(); vi.restoreAllMocks(); process.env = { ...OLD_ENV }; });
   afterEach(() => { process.env = OLD_ENV; });
 
-  it('returns quick tips when quick_tips=true', async () => {
+  it('returns quick tips by default (topics and tips included)', async () => {
     const { registerTools } = await import('../../src/server-tools.js');
     const server = new FakeServer();
     registerTools(server as any);
-    const res = await server.tools['gaql_help']({ quick_tips: true });
+    const res = await server.tools['gaql_help']({});
     const text = res.content[0].text as string;
-    expect(text.toLowerCase()).toContain('gaql quick tips');
+    expect(text.toLowerCase()).toContain('quick tips');
+    expect(text.toLowerCase()).toContain('available topics');
   });
 
   it('scores fetched chunks and returns condensed help (fetch mocked)', async () => {
@@ -30,16 +31,15 @@ describe('gaql_help tool', () => {
     expect(text.toLowerCase()).toContain('limit');
   });
 
-  it('includes Sources with local docs in hybrid default (fetch mocked)', async () => {
-    // @ts-expect-error: test overrides global.fetch
-    global.fetch = vi.fn(async () => ({ ok: true, text: async () => '<html><body><h1>Overview</h1><p>GAQL basics</p></body></html>' }));
+  it('includes official docs and field references in default output', async () => {
     const { registerTools } = await import('../../src/server-tools.js');
     const server = new FakeServer();
     registerTools(server as any);
-    const res = await server.tools['gaql_help']({ include_examples: true });
+    const res = await server.tools['gaql_help']({});
     const text = res.content[0].text as string;
-    expect(text).toContain('GAQL help (condensed)');
-    expect(text).toContain('Sources:');
-    expect(text).toContain('Local: docs/gaql.md');
+    expect(text).toContain('Google Ads Query Language (GAQL) Help');
+    expect(text).toContain('Official Documentation');
+    expect(text).toMatch(/overview: https:\/\/developers\.google\.com\/google-ads\/api\/docs\/query\/overview/);
+    expect(text).toContain('Field Reference');
   });
 });

@@ -10,6 +10,7 @@ describe('executeGaql', () => {
     process.env = { ...OLD_ENV };
     process.env.GOOGLE_ADS_ACCESS_TOKEN = 'test-token';
     process.env.GOOGLE_ADS_DEVELOPER_TOKEN = 'dev-token';
+    delete process.env.GOOGLE_ADS_MANAGER_ACCOUNT_ID;
     global.fetch = vi.fn(async () => ({
       ok: true,
       status: 200,
@@ -35,5 +36,22 @@ describe('executeGaql', () => {
     expect(init.headers.Authorization).toBe('Bearer test-token');
     expect(init.headers['developer-token']).toBe('dev-token');
     expect(JSON.parse(init.body).query).toContain('SELECT');
+  });
+
+  it('sets login-customer-id from env when no override is provided', async () => {
+    process.env.GOOGLE_ADS_MANAGER_ACCOUNT_ID = '1111111111';
+    const res = await executeGaql({ customerId: '1234567890', query: 'SELECT 1' });
+    expect(res.ok).toBe(true);
+    const [, init] = (global.fetch as any).mock.calls[0];
+    expect(init.headers['login-customer-id']).toBe('1111111111');
+  });
+
+  it('per-call loginCustomerId overrides env GOOGLE_ADS_MANAGER_ACCOUNT_ID', async () => {
+    process.env.GOOGLE_ADS_MANAGER_ACCOUNT_ID = '1111111111';
+    const res = await executeGaql({ customerId: '1234567890', query: 'SELECT 1', loginCustomerId: '222-222-2222' });
+    expect(res.ok).toBe(true);
+    const [, init] = (global.fetch as any).mock.calls[0];
+    // Should reflect the override (formatted without dashes)
+    expect(init.headers['login-customer-id']).toBe('2222222222');
   });
 });

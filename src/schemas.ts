@@ -28,6 +28,15 @@ export const ListResourcesSchema: JsonSchema = zodToJsonSchema(ListResourcesZ, '
 export const ExecuteGaqlZ = z.object({
   customer_id: z.string().optional().describe('10-digit customer ID (no dashes). Optional.'),
   customerId: z.union([z.string(), z.number()]).optional().describe('Alias of customer_id.'),
+  // Per-call login customer (MCC/manager) override
+  login_customer_id: z.union([z.string(), z.number()]).optional().describe('Manager account (MCC) ID to use as login-customer for this request (10 digits, no dashes). Aliases: mcc, mcc_id, manager_account_id. Overrides env GOOGLE_ADS_MANAGER_ACCOUNT_ID.'),
+  loginCustomerId: z.union([z.string(), z.number()]).optional().describe('Alias of login_customer_id.'),
+  mcc: z.union([z.string(), z.number()]).optional().describe('Alias of login_customer_id (MCC ID).'),
+  mcc_id: z.union([z.string(), z.number()]).optional().describe('Alias of login_customer_id (MCC ID).'),
+  mccId: z.union([z.string(), z.number()]).optional().describe('Alias of login_customer_id (MCC ID).'),
+  manager_account_id: z.union([z.string(), z.number()]).optional().describe('Alias of login_customer_id (manager account ID).'),
+  managerAccountId: z.union([z.string(), z.number()]).optional().describe('Alias of login_customer_id (manager account ID).'),
+
   query: z.string().describe(
     [
       'GAQL query string. Examples:',
@@ -52,6 +61,15 @@ export const ExecuteGaqlSchema: JsonSchema = zodToJsonSchema(ExecuteGaqlZ, 'Exec
 export const GetPerformanceZ = z.object({
   customer_id: z.string().optional().describe('10-digit customer ID (no dashes). Optional.'),
   customerId: z.union([z.string(), z.number()]).optional().describe('Alias of customer_id.'),
+  // Per-call login customer (MCC/manager) override
+  login_customer_id: z.union([z.string(), z.number()]).optional().describe('Manager account (MCC) ID to use as login-customer for this request (10 digits, no dashes). Aliases: mcc, mcc_id, manager_account_id. Overrides env GOOGLE_ADS_MANAGER_ACCOUNT_ID.'),
+  loginCustomerId: z.union([z.string(), z.number()]).optional().describe('Alias of login_customer_id.'),
+  mcc: z.union([z.string(), z.number()]).optional().describe('Alias of login_customer_id (MCC ID).'),
+  mcc_id: z.union([z.string(), z.number()]).optional().describe('Alias of login_customer_id (MCC ID).'),
+  mccId: z.union([z.string(), z.number()]).optional().describe('Alias of login_customer_id (MCC ID).'),
+  manager_account_id: z.union([z.string(), z.number()]).optional().describe('Alias of login_customer_id (manager account ID).'),
+  managerAccountId: z.union([z.string(), z.number()]).optional().describe('Alias of login_customer_id (manager account ID).'),
+
   level: z.enum(['account','campaign','ad_group','ad']).describe('Aggregation level'),
   days: z.number().default(30).describe('Days back to query (1-365, default 30)'),
   limit: z.number().default(50).describe('GAQL LIMIT (1-1000, default 50)'),
