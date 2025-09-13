@@ -2,10 +2,10 @@ export type PerformanceLevel = 'account' | 'campaign' | 'ad_group' | 'ad';
 
 export type PerformanceFilters = {
   status?: string;
-  nameContains?: string;
-  campaignNameContains?: string;
-  minClicks?: number;
-  minImpressions?: number;
+  name_contains?: string;
+  campaign_name_contains?: string;
+  min_clicks?: number;
+  min_impressions?: number;
 };
 
 export function buildPerformanceQuery(
@@ -91,11 +91,11 @@ export function buildPerformanceQuery(
   // Apply filters
   const esc = (v: string) => v.replace(/'/g, "''");
   if (filters.status) whereClauses.push(`AND ${statusField} = '${esc(filters.status)}'`);
-  if (filters.nameContains) whereClauses.push(`AND ${nameField} LIKE '%${esc(filters.nameContains)}%'`);
-  if (filters.campaignNameContains && level !== 'account')
-    whereClauses.push(`AND ${campaignNameField} LIKE '%${esc(filters.campaignNameContains)}%'`);
-  if (typeof filters.minClicks === 'number') whereClauses.push(`AND metrics.clicks >= ${Math.max(0, Math.floor(filters.minClicks))}`);
-  if (typeof filters.minImpressions === 'number') whereClauses.push(`AND metrics.impressions >= ${Math.max(0, Math.floor(filters.minImpressions))}`);
+  if (filters.name_contains) whereClauses.push(`AND ${nameField} LIKE '%${esc(filters.name_contains)}%'`);
+  if (filters.campaign_name_contains && level !== 'account')
+    whereClauses.push(`AND ${campaignNameField} LIKE '%${esc(filters.campaign_name_contains)}%'`);
+  if (typeof filters.min_clicks === 'number') whereClauses.push(`AND metrics.clicks >= ${Math.max(0, Math.floor(filters.min_clicks))}`);
+  if (typeof filters.min_impressions === 'number') whereClauses.push(`AND metrics.impressions >= ${Math.max(0, Math.floor(filters.min_impressions))}`);
 
   const query = `
     ${whereClauses.join('\n    ')}

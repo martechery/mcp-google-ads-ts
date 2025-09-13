@@ -10,8 +10,8 @@ describe('buildPerformanceQuery', () => {
     expect(q).toContain('metrics.cost_micros');
   });
 
-  it('does not apply campaignNameContains at account level', () => {
-    const q = buildPerformanceQuery('account', 30, 50, { campaignNameContains: 'Brand' });
+  it('does not apply campaign_name_contains at account level', () => {
+    const q = buildPerformanceQuery('account', 30, 50, { campaign_name_contains: 'Brand' });
     expect(q).not.toContain('campaign.name');
   });
   it('includes currency and metrics for campaign', () => {

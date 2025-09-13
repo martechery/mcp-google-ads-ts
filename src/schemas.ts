@@ -14,28 +14,17 @@ export const ManageAuthSchema: JsonSchema = zodToJsonSchema(ManageAuthZ, 'Manage
 // List Resources schema (supports GAQL resources or accounts)
 export const ListResourcesZ = z.object({
   kind: z.enum(['resources', 'accounts']).default('resources').describe('what to list: resources | accounts'),
-  resource: z.string().optional().describe('Alias of kind ("accounts" or "resources").'),
   filter: z.string().optional().describe('substring filter on resource name'),
   limit: z.number().default(500).describe('max rows (1-1000)'),
   output_format: z.enum(['table', 'json', 'csv']).default('table').describe('render format'),
-  outputFormat: z.enum(['table','json','csv']).optional().describe('Alias of output_format.'),
 });
 export const ListResourcesSchema: JsonSchema = zodToJsonSchema(ListResourcesZ, 'ListResources') as unknown as JsonSchema;
 
-// Execute GAQL schema
-// (aliases normalized at runtime in handlers)
-
+// Execute GAQL schema (canonical snake_case only)
 export const ExecuteGaqlZ = z.object({
   customer_id: z.string().optional().describe('10-digit customer ID (no dashes). Optional.'),
-  customerId: z.union([z.string(), z.number()]).optional().describe('Alias of customer_id.'),
   // Per-call login customer (MCC/manager) override
-  login_customer_id: z.union([z.string(), z.number()]).optional().describe('Manager account (MCC) ID to use as login-customer for this request (10 digits, no dashes). Aliases: mcc, mcc_id, manager_account_id. Overrides env GOOGLE_ADS_MANAGER_ACCOUNT_ID.'),
-  loginCustomerId: z.union([z.string(), z.number()]).optional().describe('Alias of login_customer_id.'),
-  mcc: z.union([z.string(), z.number()]).optional().describe('Alias of login_customer_id (MCC ID).'),
-  mcc_id: z.union([z.string(), z.number()]).optional().describe('Alias of login_customer_id (MCC ID).'),
-  mccId: z.union([z.string(), z.number()]).optional().describe('Alias of login_customer_id (MCC ID).'),
-  manager_account_id: z.union([z.string(), z.number()]).optional().describe('Alias of login_customer_id (manager account ID).'),
-  managerAccountId: z.union([z.string(), z.number()]).optional().describe('Alias of login_customer_id (manager account ID).'),
+  login_customer_id: z.union([z.string(), z.number()]).optional().describe('Manager account (MCC) ID to use as login-customer for this request (10 digits, no dashes). Overrides env GOOGLE_ADS_MANAGER_ACCOUNT_ID.'),
 
   query: z.string().describe(
     [
@@ -45,50 +34,33 @@ export const ExecuteGaqlZ = z.object({
     ].join('\n')
   ),
   page_size: z.number().min(1).optional().describe('optional page size (1-10000)'),
-  pageSize: z.number().min(1).optional().describe('Alias of page_size.'),
   page_token: z.string().optional().describe('optional page token'),
-  pageToken: z.string().optional().describe('Alias of page_token.'),
   auto_paginate: z.boolean().default(false).describe('fetch multiple pages automatically'),
-  autoPaginate: z.boolean().optional().describe('Alias of auto_paginate.'),
   max_pages: z.number().min(1).max(20).default(5).describe('limit when auto_paginate=true (1-20)'),
-  maxPages: z.number().min(1).max(20).optional().describe('Alias of max_pages.'),
   output_format: z.enum(['table','json','csv']).default('table').describe('render format'),
-  outputFormat: z.enum(['table','json','csv']).optional().describe('Alias of output_format.'),
 });
 export const ExecuteGaqlSchema: JsonSchema = zodToJsonSchema(ExecuteGaqlZ, 'ExecuteGaql') as unknown as JsonSchema;
 
-// Get Performance schema
+// Get Performance schema (canonical snake_case only)
 export const GetPerformanceZ = z.object({
   customer_id: z.string().optional().describe('10-digit customer ID (no dashes). Optional.'),
-  customerId: z.union([z.string(), z.number()]).optional().describe('Alias of customer_id.'),
   // Per-call login customer (MCC/manager) override
-  login_customer_id: z.union([z.string(), z.number()]).optional().describe('Manager account (MCC) ID to use as login-customer for this request (10 digits, no dashes). Aliases: mcc, mcc_id, manager_account_id. Overrides env GOOGLE_ADS_MANAGER_ACCOUNT_ID.'),
-  loginCustomerId: z.union([z.string(), z.number()]).optional().describe('Alias of login_customer_id.'),
-  mcc: z.union([z.string(), z.number()]).optional().describe('Alias of login_customer_id (MCC ID).'),
-  mcc_id: z.union([z.string(), z.number()]).optional().describe('Alias of login_customer_id (MCC ID).'),
-  mccId: z.union([z.string(), z.number()]).optional().describe('Alias of login_customer_id (MCC ID).'),
-  manager_account_id: z.union([z.string(), z.number()]).optional().describe('Alias of login_customer_id (manager account ID).'),
-  managerAccountId: z.union([z.string(), z.number()]).optional().describe('Alias of login_customer_id (manager account ID).'),
+  login_customer_id: z.union([z.string(), z.number()]).optional().describe('Manager account (MCC) ID to use as login-customer for this request (10 digits, no dashes). Overrides env GOOGLE_ADS_MANAGER_ACCOUNT_ID.'),
 
   level: z.enum(['account','campaign','ad_group','ad']).describe('Aggregation level'),
   days: z.number().default(30).describe('Days back to query (1-365, default 30)'),
   limit: z.number().default(50).describe('GAQL LIMIT (1-1000, default 50)'),
   page_size: z.number().min(1).optional().describe('optional page size (1-10000)'),
-  pageSize: z.number().min(1).optional().describe('Alias of page_size.'),
   page_token: z.string().optional().describe('optional page token'),
-  pageToken: z.string().optional().describe('Alias of page_token.'),
   auto_paginate: z.boolean().default(false).describe('fetch multiple pages automatically'),
-  autoPaginate: z.boolean().optional().describe('Alias of auto_paginate.'),
   max_pages: z.number().min(1).max(20).default(5).describe('limit when auto_paginate=true (1-20)'),
-  maxPages: z.number().min(1).max(20).optional().describe('Alias of max_pages.'),
   output_format: z.enum(['table','json','csv']).default('table').describe('render format'),
-  outputFormat: z.enum(['table','json','csv']).optional().describe('Alias of output_format.'),
   filters: z.object({
     status: z.string().optional().describe('e.g., ENABLED, PAUSED'),
-    nameContains: z.string().optional().describe('substring in entity name (case sensitive)'),
-    campaignNameContains: z.string().optional().describe('substring in campaign name (case sensitive)'),
-    minClicks: z.number().optional().describe('minimum clicks (>=0)'),
-    minImpressions: z.number().optional().describe('minimum impressions (>=0)'),
+    name_contains: z.string().optional().describe('substring in entity name (case sensitive)'),
+    campaign_name_contains: z.string().optional().describe('substring in campaign name (case sensitive)'),
+    min_clicks: z.number().optional().describe('minimum clicks (>=0)'),
+    min_impressions: z.number().optional().describe('minimum impressions (>=0)'),
   }).optional().describe('optional performance filters'),
 });
 export const GetPerformanceSchema: JsonSchema = zodToJsonSchema(GetPerformanceZ, 'GetPerformance') as unknown as JsonSchema;

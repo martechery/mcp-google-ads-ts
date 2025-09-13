@@ -67,7 +67,7 @@ describe('server tools integration', () => {
     const { registerTools } = await import('../../src/server-tools.js');
     const server = new FakeServer();
     registerTools(server as any);
-    const filters = { status: 'ENABLED', nameContains: 'Brand', minClicks: 10 };
+    const filters = { status: 'ENABLED', name_contains: 'Brand', min_clicks: 10 };
     const res = await server.tools['get_performance']({ customer_id: '1234567890', level: 'campaign', days: 7, limit: 5, filters });
     expect((await import('../../src/tools/performance.js')).buildPerformanceQuery).toHaveBeenCalledWith('campaign', 7, 5, filters);
     const text = res.content[0].text as string;
