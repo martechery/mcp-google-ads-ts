@@ -90,3 +90,7 @@ export const GetCredentialStatusZ = z.object({
 export const EndSessionZ = z.object({
   session_key: z.string().describe('UUID v4 session key'),
 });
+
+export const RefreshAccessTokenZ = z.object({
+  session_key: z.string().describe('UUID v4 session key'),
+});

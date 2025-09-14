@@ -10,7 +10,7 @@ export type AccessToken = {
   developerToken?: string;
 };
 
-import { getConnection, touchConnection } from './utils/connection-manager.js';
+import { getConnection, touchConnection, refreshAccessTokenForSession } from './utils/connection-manager.js';
 
 export async function getAccessToken(sessionKey?: string): Promise<AccessToken> {
   if (process.env.ENABLE_RUNTIME_CREDENTIALS === 'true') {
@@ -23,8 +23,20 @@ export async function getAccessToken(sessionKey?: string): Promise<AccessToken> 
     }
     touchConnection(sessionKey);
     const cred = ctx.credentials;
+    // Preemptive refresh if expiring within 5 minutes
+    const now = Date.now();
+    const expiresAt = cred.expires_at ?? 0;
+    const needsRefresh = !!cred.refresh_token && expiresAt > 0 && expiresAt - now < 5 * 60 * 1000;
+    if (needsRefresh) {
+      try {
+        await refreshAccessTokenForSession(sessionKey);
+      } catch (e) {
+        // If refresh fails, fall through to use existing token or surface error
+        // Connection manager will purge session on invalid_grant
+      }
+    }
     return {
-      token: cred.access_token,
+      token: (getConnection(sessionKey)?.credentials.access_token) || cred.access_token,
       type: 'runtime',
       quotaProjectId: cred.quota_project_id,
       developerToken: cred.developer_token,

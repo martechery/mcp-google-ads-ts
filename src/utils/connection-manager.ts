@@ -1,5 +1,6 @@
 import { ConnectionContext, GoogleCredential } from '../types/connection.js';
 import { validateSessionKey } from './session-validator.js';
+import { formatCustomerId } from './formatCustomerId.js';
 
 const connections = new Map<string, ConnectionContext>();
 let sweeperInterval: NodeJS.Timeout | null = null;
@@ -18,7 +19,13 @@ export function establishSession(sessionKey: string, credentials: GoogleCredenti
   }
 
   const allowedIds = process.env.ALLOWED_CUSTOMER_IDS
-    ? new Set(process.env.ALLOWED_CUSTOMER_IDS.split(',').map((s) => s.trim()).filter(Boolean))
+    ? new Set(
+        process.env.ALLOWED_CUSTOMER_IDS
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean)
+          .map((id) => formatCustomerId(id))
+      )
     : undefined;
 
   const now = Date.now();
@@ -91,3 +98,58 @@ export function requireSessionKeyIfEnabled(input: any): string | undefined {
   return String(key);
 }
 
+export function isCustomerAllowedForSession(sessionKey: string, customerId: string | number): boolean {
+  const ctx = connections.get(sessionKey);
+  if (!ctx || !ctx.allowedCustomerIds) return true;
+  return ctx.allowedCustomerIds.has(formatCustomerId(customerId));
+}
+
+async function refreshTokenWithOAuth2Client(cred: GoogleCredential): Promise<GoogleCredential> {
+  const clientId = (process.env.GOOGLE_OAUTH_CLIENT_ID || '').trim();
+  const clientSecret = (process.env.GOOGLE_OAUTH_CLIENT_SECRET || '').trim();
+  if (!clientId || !clientSecret) throw new Error('OAuth client credentials not set');
+
+  const { OAuth2Client } = await import('google-auth-library');
+  const oauth2Client = new OAuth2Client({ clientId, clientSecret });
+  oauth2Client.setCredentials({ refresh_token: cred.refresh_token });
+  try {
+    const { credentials } = await (oauth2Client as any).refreshAccessToken();
+    if (!credentials?.access_token) throw new Error('No access token in refresh response');
+    return {
+      ...cred,
+      access_token: credentials.access_token,
+      expires_at: credentials.expiry_date || (Date.now() + 3600 * 1000),
+    };
+  } catch (e: any) {
+    const msg = String(e?.message || e);
+    if (msg.includes('invalid_grant')) {
+      throw new Error('invalid_grant: Refresh token is invalid or revoked');
+    }
+    throw e;
+  }
+}
+
+export async function refreshAccessTokenForSession(sessionKey: string): Promise<GoogleCredential> {
+  const ctx = connections.get(sessionKey);
+  if (!ctx) throw new Error('No session found');
+  const cred = ctx.credentials;
+  if (!cred.refresh_token) throw new Error('No refresh token available');
+  if (ctx.refreshPromise) return ctx.refreshPromise;
+
+  ctx.refreshPromise = refreshTokenWithOAuth2Client(cred)
+    .then((updated) => {
+      ctx.credentials = updated;
+      ctx.refreshPromise = undefined;
+      return updated;
+    })
+    .catch((err) => {
+      ctx.refreshPromise = undefined;
+      // Purge on invalid_grant per security model
+      if (String(err?.message || '').includes('invalid_grant')) {
+        connections.delete(sessionKey);
+      }
+      throw err;
+    });
+
+  return ctx.refreshPromise;
+}

@@ -9,8 +9,8 @@ import { searchGoogleAdsFields } from './tools/fields.js';
 import { gaqlHelp } from './tools/gaqlHelp.js';
 import { mapAdsErrorMsg } from './utils/errorMapping.js';
 import { microsToUnits } from './utils/currency.js';
-import { ManageAuthZ, ListResourcesZ, ExecuteGaqlZ, GetPerformanceZ, GaqlHelpZ, SetSessionCredentialsZ, GetCredentialStatusZ, EndSessionZ } from './schemas.js';
-import { establishSession, endSession as endSessionConn, getCredentialStatus, requireSessionKeyIfEnabled } from './utils/connection-manager.js';
+import { ManageAuthZ, ListResourcesZ, ExecuteGaqlZ, GetPerformanceZ, GaqlHelpZ, SetSessionCredentialsZ, GetCredentialStatusZ, EndSessionZ, RefreshAccessTokenZ } from './schemas.js';
+import { establishSession, endSession as endSessionConn, getCredentialStatus, requireSessionKeyIfEnabled, isCustomerAllowedForSession, refreshAccessTokenForSession } from './utils/connection-manager.js';
 import { validateSessionKey } from './utils/session-validator.js';
 
 function addTool(server: any, name: string, description: string, zodSchema: any, handler: ToolHandler) {
@@ -382,6 +382,10 @@ export function registerTools(server: ToolServer) {
         return { content: [{ type: 'text', text: lines.join('\n') }] };
         }
       }
+      // Enforce allowlist if present
+      if (sessionKey && input.customer_id && !isCustomerAllowedForSession(sessionKey, input.customer_id)) {
+        return { content: [{ type: 'text', text: `Error: Customer ID ${input.customer_id} not in allowlist for this session` }] };
+      }
       const auto = !!input.auto_paginate;
       const maxPages = Math.max(1, Math.min(20, Number(input.max_pages ?? 5)));
       const pageSize = (typeof input.page_size === 'number') ? Math.max(1, Math.min(10_000, Number(input.page_size))) : undefined;
@@ -479,6 +483,10 @@ export function registerTools(server: ToolServer) {
         ];
         return { content: [{ type: 'text', text: lines.join('\n') }] };
         }
+      }
+      // Enforce allowlist if present
+      if (sessionKey && input.customer_id && !isCustomerAllowedForSession(sessionKey, input.customer_id)) {
+        return { content: [{ type: 'text', text: `Error: Customer ID ${input.customer_id} not in allowlist for this session` }] };
       }
       const days = Math.max(1, Math.min(365, Number(input.days ?? 30)));
       const limit = Math.max(1, Math.min(1000, Number(input.limit ?? 50)));
@@ -695,6 +703,40 @@ export function registerTools(server: ToolServer) {
       }
       endSessionConn(String(input.session_key));
       return { content: [{ type: 'text', text: JSON.stringify({ status: 'session_ended' }) }] };
+    }
+  );
+
+  addTool(
+    server,
+    'refresh_access_token',
+    'Refresh the access token for a session (multi-tenant mode). Requires GOOGLE_OAUTH_CLIENT_ID/SECRET.',
+    RefreshAccessTokenZ,
+    async (input: any) => {
+      if (process.env.ENABLE_RUNTIME_CREDENTIALS !== 'true') {
+        return { content: [{ type: 'text', text: 'Multi-tenant mode not enabled' }] };
+      }
+      const clientId = (process.env.GOOGLE_OAUTH_CLIENT_ID || '').trim();
+      const clientSecret = (process.env.GOOGLE_OAUTH_CLIENT_SECRET || '').trim();
+      if (!clientId || !clientSecret) {
+        return { content: [{ type: 'text', text: 'OAuth client credentials not set. Set GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET to enable token refresh.' }] };
+      }
+      try {
+        validateSessionKey(String(input?.session_key || ''));
+      } catch (e: any) {
+        return { content: [{ type: 'text', text: `Error: ${e?.message || String(e)}` }] };
+      }
+      try {
+        const updated = await refreshAccessTokenForSession(String(input.session_key));
+        const masked = updated.access_token && updated.access_token.length > 8 ? `${updated.access_token.slice(0,4)}****${updated.access_token.slice(-4)}` : '****';
+        const expiresIn = Math.max(0, Math.floor(((updated.expires_at || (Date.now()+3600000)) - Date.now())/1000));
+        return { content: [{ type: 'text', text: JSON.stringify({ status: 'refreshed', expires_in: expiresIn, masked_token: masked }) }] };
+      } catch (e: any) {
+        const msg = String(e?.message || e);
+        if (msg.includes('invalid_grant')) {
+          return { content: [{ type: 'text', text: JSON.stringify({ error: { code: 'ERR_INVALID_GRANT', message: 'Refresh token invalid or revoked. Re-authentication required.' } }) }] };
+        }
+        return { content: [{ type: 'text', text: JSON.stringify({ error: { code: 'ERR_REFRESH_FAILED', message: msg } }) }] };
+      }
     }
   );
 }
