@@ -9,7 +9,9 @@ import { searchGoogleAdsFields } from './tools/fields.js';
 import { gaqlHelp } from './tools/gaqlHelp.js';
 import { mapAdsErrorMsg } from './utils/errorMapping.js';
 import { microsToUnits } from './utils/currency.js';
-import { ManageAuthZ, ListResourcesZ, ExecuteGaqlZ, GetPerformanceZ, GaqlHelpZ } from './schemas.js';
+import { ManageAuthZ, ListResourcesZ, ExecuteGaqlZ, GetPerformanceZ, GaqlHelpZ, SetSessionCredentialsZ, GetCredentialStatusZ, EndSessionZ } from './schemas.js';
+import { establishSession, endSession as endSessionConn, getCredentialStatus, requireSessionKeyIfEnabled } from './utils/connection-manager.js';
+import { validateSessionKey } from './utils/session-validator.js';
 
 function addTool(server: any, name: string, description: string, zodSchema: any, handler: ToolHandler) {
   // If this looks like our test FakeServer (captures tools in an object), use def-object style
@@ -40,6 +42,9 @@ export function registerTools(server: ToolServer) {
     "Manage Google Ads auth: status; switch/refresh via gcloud; set_project/set_quota_project; optional oauth_login using env client id/secret to create ADC file.",
     ManageAuthZ,
     async (input: any) => {
+      if (process.env.ENABLE_RUNTIME_CREDENTIALS === 'true') {
+        return { content: [{ type: 'text', text: 'Authentication cannot be modified in multi-tenant mode (manage_auth disabled).' }] };
+      }
       const action = (input?.action || 'status').toLowerCase();
       // Default: execute subprocess actions unless explicitly disabled
       const allowSub = input?.allow_subprocess !== false;
@@ -345,12 +350,18 @@ export function registerTools(server: ToolServer) {
     ExecuteGaqlZ,
     async (_input: any) => {
       const input = (_input || {}) as any;
+      let sessionKey: string | undefined;
+      try {
+        sessionKey = requireSessionKeyIfEnabled(input);
+      } catch (e: any) {
+        return { content: [{ type: 'text', text: `Error: ${e?.message || String(e)}` }] };
+      }
       if (!input.customer_id) {
         const envAccount = process.env.GOOGLE_ADS_ACCOUNT_ID;
         if (envAccount) {
           input.customer_id = envAccount;
         } else {
-        const res = await listAccessibleCustomers();
+        const res = await listAccessibleCustomers(sessionKey);
         if (!res.ok) {
           const hint = mapAdsErrorMsg(res.status, res.errorText || '');
           const lines = [
@@ -384,7 +395,7 @@ export function registerTools(server: ToolServer) {
         ?? (input as any).managerAccountId
         ?? (input as any).mcc;
       do {
-        const res = await executeGaql({ customerId: input.customer_id, query: input.query, pageSize, pageToken, loginCustomerId });
+        const res = await executeGaql({ customerId: input.customer_id, query: input.query, pageSize, pageToken, loginCustomerId, sessionKey });
         if (!res.ok) {
           const hint = mapAdsErrorMsg(res.status, res.errorText || '');
           const lines = [`Error executing query (status ${res.status}): ${res.errorText || ''}`];
@@ -437,12 +448,18 @@ export function registerTools(server: ToolServer) {
     GetPerformanceZ,
     async (_input: any) => {
       const input = (_input || {}) as any;
+      let sessionKey: string | undefined;
+      try {
+        sessionKey = requireSessionKeyIfEnabled(input);
+      } catch (e: any) {
+        return { content: [{ type: 'text', text: `Error: ${e?.message || String(e)}` }] };
+      }
       if (!input.customer_id) {
         const envAccount = process.env.GOOGLE_ADS_ACCOUNT_ID;
         if (envAccount) {
           input.customer_id = envAccount;
         } else {
-        const res = await listAccessibleCustomers();
+        const res = await listAccessibleCustomers(sessionKey);
         if (!res.ok) {
           const hint = mapAdsErrorMsg(res.status, res.errorText || '');
           const lines = [
@@ -479,7 +496,7 @@ export function registerTools(server: ToolServer) {
         ?? (input as any).managerAccountId
         ?? (input as any).mcc;
       do {
-        const res = await executeGaql({ customerId: input.customer_id, query, pageSize, pageToken, loginCustomerId });
+        const res = await executeGaql({ customerId: input.customer_id, query, pageSize, pageToken, loginCustomerId, sessionKey });
         if (!res.ok) {
           const hint = mapAdsErrorMsg(res.status, res.errorText || '');
           const lines = [`Error executing performance query (status ${res.status}): ${res.errorText || ''}`];
@@ -540,9 +557,15 @@ export function registerTools(server: ToolServer) {
     "List GAQL FROM-able resources via google_ads_field (category=RESOURCE, selectable=true) or list accounts. output_format=table|json|csv.",
     ListResourcesZ,
     async (input: any) => {
+      let sessionKey: string | undefined;
+      try {
+        sessionKey = requireSessionKeyIfEnabled(input);
+      } catch (e: any) {
+        return { content: [{ type: 'text', text: `Error: ${e?.message || String(e)}` }] };
+      }
       const kind = String(input?.kind || 'resources').toLowerCase();
       if (kind === 'accounts') {
-        const res = await listAccessibleCustomers();
+        const res = await listAccessibleCustomers(sessionKey);
         if (!res.ok) {
           const hint = mapAdsErrorMsg(res.status, res.errorText || '');
           const lines = [`Error listing accounts (status ${res.status}): ${res.errorText || ''}`];
@@ -568,7 +591,7 @@ export function registerTools(server: ToolServer) {
       if (filter) where.push(`name LIKE '%${filter.replace(/'/g, "''")}%'`);
       // GoogleAdsFieldService search does NOT support FROM; use implicit FROM.
       const query = `SELECT name, category, selectable WHERE ${where.join(' AND ')} ORDER BY name LIMIT ${limit}`;
-      const res = await searchGoogleAdsFields(query);
+      const res = await searchGoogleAdsFields(query, sessionKey);
       if (!res.ok) {
         const hint = mapAdsErrorMsg(res.status, res.errorText || '');
         const lines = [`Error listing resources (status ${res.status}): ${res.errorText || ''}`];
@@ -610,6 +633,68 @@ export function registerTools(server: ToolServer) {
         ];
         return { content: [{ type: 'text', text: lines.join('\n') }] };
       }
+    }
+  );
+
+  // Multi-tenant session tools
+  addTool(
+    server,
+    'set_session_credentials',
+    'Establish a session with Google Ads credentials (multi-tenant mode only).',
+    SetSessionCredentialsZ,
+    async (input: any) => {
+      if (process.env.ENABLE_RUNTIME_CREDENTIALS !== 'true') {
+        return { content: [{ type: 'text', text: 'Multi-tenant mode not enabled' }] };
+      }
+      try {
+        validateSessionKey(String(input?.session_key || ''));
+      } catch (e: any) {
+        return { content: [{ type: 'text', text: `Error: ${e?.message || String(e)}` }] };
+      }
+      try {
+        const out = establishSession(String(input.session_key), input.google_credentials);
+        return { content: [{ type: 'text', text: JSON.stringify({ status: 'success', ...out }) }] };
+      } catch (e: any) {
+        return { content: [{ type: 'text', text: JSON.stringify({ error: { code: 'ERR_ESTABLISH', message: e?.message || String(e) } }) }] };
+      }
+    }
+  );
+
+  addTool(
+    server,
+    'get_credential_status',
+    'Get credential status for a session (multi-tenant mode).',
+    GetCredentialStatusZ,
+    async (input: any) => {
+      if (process.env.ENABLE_RUNTIME_CREDENTIALS !== 'true') {
+        return { content: [{ type: 'text', text: 'Multi-tenant mode not enabled' }] };
+      }
+      try {
+        validateSessionKey(String(input?.session_key || ''));
+      } catch (e: any) {
+        return { content: [{ type: 'text', text: `Error: ${e?.message || String(e)}` }] };
+      }
+      const status = getCredentialStatus(String(input.session_key));
+      return { content: [{ type: 'text', text: JSON.stringify(status) }] };
+    }
+  );
+
+  addTool(
+    server,
+    'end_session',
+    'End a session and clear credentials (multi-tenant mode).',
+    EndSessionZ,
+    async (input: any) => {
+      if (process.env.ENABLE_RUNTIME_CREDENTIALS !== 'true') {
+        return { content: [{ type: 'text', text: 'Multi-tenant mode not enabled' }] };
+      }
+      try {
+        validateSessionKey(String(input?.session_key || ''));
+      } catch (e: any) {
+        return { content: [{ type: 'text', text: `Error: ${e?.message || String(e)}` }] };
+      }
+      endSessionConn(String(input.session_key));
+      return { content: [{ type: 'text', text: JSON.stringify({ status: 'session_ended' }) }] };
     }
   );
 }

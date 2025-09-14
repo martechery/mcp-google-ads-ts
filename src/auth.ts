@@ -1,15 +1,35 @@
 // Lightweight auth abstraction to enable unit testing and future ADC integration.
 // For now, prefer reading an explicit token from env for tests/dev.
 
-export type AuthType = 'env' | 'adc' | 'gcloud_cli' | 'oauth' | 'service_account';
+export type AuthType = 'env' | 'adc' | 'gcloud_cli' | 'oauth' | 'service_account' | 'runtime';
 
 export type AccessToken = {
   token: string;
   type: AuthType;
   quotaProjectId?: string;
+  developerToken?: string;
 };
 
-export async function getAccessToken(): Promise<AccessToken> {
+import { getConnection, touchConnection } from './utils/connection-manager.js';
+
+export async function getAccessToken(sessionKey?: string): Promise<AccessToken> {
+  if (process.env.ENABLE_RUNTIME_CREDENTIALS === 'true') {
+    if (!sessionKey) {
+      throw new Error('ERR_NO_SESSION_KEY: session_key required in multi-tenant mode');
+    }
+    const ctx = getConnection(sessionKey);
+    if (!ctx) {
+      throw new Error('ERR_NO_CREDENTIALS: No credentials provided for this session');
+    }
+    touchConnection(sessionKey);
+    const cred = ctx.credentials;
+    return {
+      token: cred.access_token,
+      type: 'runtime',
+      quotaProjectId: cred.quota_project_id,
+      developerToken: cred.developer_token,
+    };
+  }
   const envToken = process.env.GOOGLE_ADS_ACCESS_TOKEN;
   if (envToken) {
     return {

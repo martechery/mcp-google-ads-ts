@@ -12,6 +12,7 @@ TypeScript implementation of an MCP server for Google Ads API with GCloud/ADC au
 - [Quick Start](#quick-start)
 - [Authentication](#authentication)
 - [Environment Variables](#environment-variables)
+- [Multi-Tenant Mode](#multi-tenant-mode)
 - [Client-Specific Instructions](#client-specific-instructions)
   - [Claude Desktop](#claude-desktop)
   - [Claude Code](#claude-code)
@@ -260,9 +261,68 @@ For development with auto-reload:
 npm run dev
 ```
 
+## Multi-Tenant Mode
+
+Multi-tenant mode allows hosted deployments to accept Google Ads credentials at connection time (no filesystem storage) and keep them immutable for the session lifecycle.
+
+Enable via environment:
+- `ENABLE_RUNTIME_CREDENTIALS=true` (default: false)
+- `RUNTIME_CREDENTIAL_TTL` Session TTL in seconds (default: 3600)
+- `MAX_CONNECTIONS` Maximum in-memory sessions (default: 1000)
+- `CONNECTION_SWEEP_INTERVAL` Cleanup interval in seconds (default: 300)
+- `ALLOWED_CUSTOMER_IDS` Optional allowlist of customer IDs (comma-separated)
+- `GOOGLE_OAUTH_CLIENT_ID` / `GOOGLE_OAUTH_CLIENT_SECRET` Optional, for refresh flows
+- `HTTPS_PROXY` Optional proxy for outbound requests
+- `NODE_TLS_REJECT_UNAUTHORIZED` For proxy/cert handling when required
+
+Behavioral differences when enabled:
+- Credentials must be provided via `set_session_credentials`
+- No fallback to ADC/env credentials
+- `manage_auth` is disabled
+- Each tool call must include `session_key`
+- Developer token is required in provided credentials
+- Sticky sessions required for multi-process deployments
+
+Session tools:
+1) `set_session_credentials`
+   - Request:
+```json
+{
+  "session_key": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+  "google_credentials": {
+    "access_token": "ya29...",
+    "refresh_token": "1//...",
+    "developer_token": "DEV_TOKEN_REQUIRED",
+    "login_customer_id": "1234567890",
+    "quota_project_id": "my-project"
+  }
+}
+```
+   - Response: `{ "status": "success", "session_key": "...", "expires_in": 3600 }`
+
+2) `get_credential_status`
+   - Request: `{ "session_key": "f47ac10b-58cc-4372-a567-0e02b2c3d479" }`
+   - Response: `{ "has_credentials": true, "expires_in": 3542, "has_refresh_token": true, "masked_token": "ya29****abcd" }`
+
+3) `end_session`
+   - Request: `{ "session_key": "f47ac10b-58cc-4372-a567-0e02b2c3d479" }`
+   - Response: `{ "status": "session_ended" }`
+
+Using standard tools in multi-tenant mode: include `session_key` in inputs. Example:
+```json
+{
+  "session_key": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+  "customer_id": "1234567890",
+  "query": "SELECT campaign.id, campaign.name FROM campaign LIMIT 5",
+  "output_format": "table"
+}
+```
+
 ## Available Tools
 
 ### 1. `manage_auth` - Authentication management
+
+Note: When `ENABLE_RUNTIME_CREDENTIALS=true` (multi-tenant mode), this tool is disabled and returns an error. Use the session tools instead.
 
 ```typescript
 {

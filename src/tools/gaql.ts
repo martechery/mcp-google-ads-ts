@@ -12,6 +12,7 @@ export type ExecuteGaqlParams = {
   pageToken?: string;
   // Optional per-call login-customer override (MCC/manager account id)
   loginCustomerId?: string | number;
+  sessionKey?: string;
 };
 
 export type GaqlResponse = {
@@ -21,9 +22,9 @@ export type GaqlResponse = {
   errorText?: string;
 };
 
-export async function executeGaql({ customerId, query, pageSize, pageToken, loginCustomerId }: ExecuteGaqlParams): Promise<GaqlResponse> {
-  const { token, quotaProjectId } = await getAccessToken();
-  const developerToken = process.env.GOOGLE_ADS_DEVELOPER_TOKEN || '';
+export async function executeGaql({ customerId, query, pageSize, pageToken, loginCustomerId, sessionKey }: ExecuteGaqlParams): Promise<GaqlResponse> {
+  const { token, quotaProjectId, developerToken: devFromToken } = await getAccessToken(sessionKey);
+  const developerToken = devFromToken || process.env.GOOGLE_ADS_DEVELOPER_TOKEN || '';
   const loginCustomerHeader = (loginCustomerId != null ? String(loginCustomerId) : process.env.GOOGLE_ADS_MANAGER_ACCOUNT_ID);
 
   const headers = buildAdsHeaders({

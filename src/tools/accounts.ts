@@ -11,9 +11,9 @@ export type AccountsResponse = {
   errorText?: string;
 };
 
-export async function listAccessibleCustomers(): Promise<AccountsResponse> {
-  const { token, quotaProjectId } = await getAccessToken();
-  const developerToken = process.env.GOOGLE_ADS_DEVELOPER_TOKEN || '';
+export async function listAccessibleCustomers(sessionKey?: string): Promise<AccountsResponse> {
+  const { token, quotaProjectId, developerToken: devFromToken } = await getAccessToken(sessionKey);
+  const developerToken = devFromToken || process.env.GOOGLE_ADS_DEVELOPER_TOKEN || '';
   const headers = buildAdsHeaders({ accessToken: token, developerToken, quotaProjectId });
 
   const url = `https://googleads.googleapis.com/${API_VERSION}/customers:listAccessibleCustomers`;

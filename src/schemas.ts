@@ -71,3 +71,22 @@ export const GaqlHelpZ = z.object({
   search: z.string().optional().describe('search term for help content'),
 });
 export const GaqlHelpSchema: JsonSchema = zodToJsonSchema(GaqlHelpZ, 'GaqlHelp') as unknown as JsonSchema;
+
+// Multi-tenant session tools
+export const SetSessionCredentialsZ = z.object({
+  session_key: z.string().describe('UUID v4 session key'),
+  google_credentials: z.object({
+    access_token: z.string(),
+    refresh_token: z.string().optional(),
+    developer_token: z.string(),
+    login_customer_id: z.string().optional(),
+    quota_project_id: z.string().optional(),
+    expires_at: z.number().optional(),
+  }),
+});
+export const GetCredentialStatusZ = z.object({
+  session_key: z.string().describe('UUID v4 session key'),
+});
+export const EndSessionZ = z.object({
+  session_key: z.string().describe('UUID v4 session key'),
+});
