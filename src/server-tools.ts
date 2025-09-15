@@ -11,6 +11,8 @@ import { mapAdsErrorMsg } from './utils/errorMapping.js';
 import { microsToUnits } from './utils/currency.js';
 import { ManageAuthZ, ListResourcesZ, ExecuteGaqlZ, GetPerformanceZ, GaqlHelpZ, SetSessionCredentialsZ, GetCredentialStatusZ, EndSessionZ, RefreshAccessTokenZ } from './schemas.js';
 import { establishSession, endSession as endSessionConn, getCredentialStatus, requireSessionKeyIfEnabled, isCustomerAllowedForSession, refreshAccessTokenForSession, verifyTokenScopeForSession } from './utils/connection-manager.js';
+import { emitMcpEvent, nowIso } from './utils/observability.js';
+import { normalizeApiVersion } from './utils/normalizeApiVersion.js';
 import { validateSessionKey } from './utils/session-validator.js';
 
 function addTool(server: any, name: string, description: string, zodSchema: any, handler: ToolHandler) {
@@ -34,6 +36,20 @@ function addTool(server: any, name: string, description: string, zodSchema: any,
 
 export function registerTools(server: ToolServer) {
   // Removed: ping and get_auth_status (status merged into manage_auth)
+
+  function logEvent(tool: string, start: number, opts: { sessionKey?: string; customerId?: string; requestId?: string; error?: { code: string; message: string } }) {
+    const apiVer = normalizeApiVersion(process.env.GOOGLE_ADS_API_VERSION);
+    emitMcpEvent({
+      timestamp: nowIso(),
+      tool,
+      session_key: opts.sessionKey,
+      customer_id: opts.customerId,
+      request_id: opts.requestId,
+      response_time_ms: Date.now() - start,
+      api_version: apiVer,
+      error: opts.error,
+    });
+  }
 
   // Manage auth tool (status implemented)
   addTool(
@@ -350,11 +366,14 @@ export function registerTools(server: ToolServer) {
     ExecuteGaqlZ,
     async (_input: any) => {
       const input = (_input || {}) as any;
+      const startTs = Date.now();
       let sessionKey: string | undefined;
       try {
         sessionKey = requireSessionKeyIfEnabled(input);
       } catch (e: any) {
-        return { content: [{ type: 'text', text: `Error: ${e?.message || String(e)}` }] };
+        const msg = e?.message || String(e);
+        logEvent('execute_gaql_query', startTs, { sessionKey, customerId: input?.customer_id, requestId: input?.request_id, error: { code: 'ERR_INPUT', message: String(msg) } });
+        return { content: [{ type: 'text', text: `Error: ${msg}` }] };
       }
       if (!input.customer_id) {
         const envAccount = process.env.GOOGLE_ADS_ACCOUNT_ID;
@@ -369,6 +388,7 @@ export function registerTools(server: ToolServer) {
             `Error listing accounts (status ${res.status}): ${res.errorText || ''}`,
           ];
           if (hint) lines.push(`Hint: ${hint}`);
+          logEvent('execute_gaql_query', startTs, { sessionKey, requestId: input?.request_id, error: { code: `HTTP_${res.status}`, message: String(res.errorText || '') } });
           return { content: [{ type: 'text', text: lines.join('\n') }] };
         }
         const names = res.data?.resourceNames || [];
@@ -379,6 +399,7 @@ export function registerTools(server: ToolServer) {
           'No customer_id provided. Select one of the accounts below, then call again with customer_id.',
           table,
         ];
+        logEvent('execute_gaql_query', startTs, { sessionKey, requestId: input?.request_id });
         return { content: [{ type: 'text', text: lines.join('\n') }] };
         }
       }
@@ -404,6 +425,7 @@ export function registerTools(server: ToolServer) {
           const hint = mapAdsErrorMsg(res.status, res.errorText || '');
           const lines = [`Error executing query (status ${res.status}): ${res.errorText || ''}`];
           if (hint) lines.push(`Hint: ${hint}`);
+          logEvent('execute_gaql_query', startTs, { sessionKey, customerId: input.customer_id, requestId: input?.request_id, error: { code: `HTTP_${res.status}`, message: String(res.errorText || '') } });
           return { content: [{ type: "text", text: lines.join('\n') }] };
         }
         const data = res.data;
@@ -438,7 +460,9 @@ export function registerTools(server: ToolServer) {
       const lines: string[] = ["Query Results:", table];
       if (!auto && lastToken) lines.push(`Next Page Token: ${lastToken}`);
       if (auto) lines.push(`Pages fetched: ${pageCount}`);
-      return { content: [{ type: "text", text: lines.join("\n") }] };
+      const out = { content: [{ type: "text", text: lines.join("\n") }] };
+      logEvent('execute_gaql_query', startTs, { sessionKey, customerId: input.customer_id, requestId: input?.request_id });
+      return out;
     }
   );
 
@@ -452,11 +476,14 @@ export function registerTools(server: ToolServer) {
     GetPerformanceZ,
     async (_input: any) => {
       const input = (_input || {}) as any;
+      const startTs = Date.now();
       let sessionKey: string | undefined;
       try {
         sessionKey = requireSessionKeyIfEnabled(input);
       } catch (e: any) {
-        return { content: [{ type: 'text', text: `Error: ${e?.message || String(e)}` }] };
+        const msg = e?.message || String(e);
+        logEvent('get_performance', startTs, { sessionKey, customerId: input?.customer_id, requestId: input?.request_id, error: { code: 'ERR_INPUT', message: String(msg) } });
+        return { content: [{ type: 'text', text: `Error: ${msg}` }] };
       }
       if (!input.customer_id) {
         const envAccount = process.env.GOOGLE_ADS_ACCOUNT_ID;
@@ -471,6 +498,7 @@ export function registerTools(server: ToolServer) {
             `Error listing accounts (status ${res.status}): ${res.errorText || ''}`,
           ];
           if (hint) lines.push(`Hint: ${hint}`);
+          logEvent('get_performance', startTs, { sessionKey, requestId: input?.request_id, error: { code: `HTTP_${res.status}`, message: String(res.errorText || '') } });
           return { content: [{ type: 'text', text: lines.join('\n') }] };
         }
         const names = res.data?.resourceNames || [];
@@ -481,6 +509,7 @@ export function registerTools(server: ToolServer) {
           'No customer_id provided. Select one of the accounts below, then call again with customer_id.',
           table,
         ];
+        logEvent('get_performance', startTs, { sessionKey, requestId: input?.request_id });
         return { content: [{ type: 'text', text: lines.join('\n') }] };
         }
       }
@@ -509,6 +538,7 @@ export function registerTools(server: ToolServer) {
           const hint = mapAdsErrorMsg(res.status, res.errorText || '');
           const lines = [`Error executing performance query (status ${res.status}): ${res.errorText || ''}`];
           if (hint) lines.push(`Hint: ${hint}`);
+          logEvent('get_performance', startTs, { sessionKey, customerId: input.customer_id, requestId: input?.request_id, error: { code: `HTTP_${res.status}`, message: String(res.errorText || '') } });
           return { content: [{ type: "text", text: lines.join('\n') }] };
         }
         const data = res.data;
@@ -554,7 +584,9 @@ export function registerTools(server: ToolServer) {
       ];
       if (!auto && lastToken) lines.push(`Next Page Token: ${lastToken}`);
       if (auto) lines.push(`Pages fetched: ${pageCount}`);
-      return { content: [{ type: "text", text: lines.join("\n") }] };
+      const out = { content: [{ type: "text", text: lines.join("\n") }] };
+      logEvent('get_performance', startTs, { sessionKey, customerId: input.customer_id, requestId: input?.request_id });
+      return out;
     }
   );
 
@@ -565,11 +597,14 @@ export function registerTools(server: ToolServer) {
     "List GAQL FROM-able resources via google_ads_field (category=RESOURCE, selectable=true) or list accounts. output_format=table|json|csv.",
     ListResourcesZ,
     async (input: any) => {
+      const startTs = Date.now();
       let sessionKey: string | undefined;
       try {
         sessionKey = requireSessionKeyIfEnabled(input);
       } catch (e: any) {
-        return { content: [{ type: 'text', text: `Error: ${e?.message || String(e)}` }] };
+        const msg = e?.message || String(e);
+        logEvent('list_resources', startTs, { sessionKey, requestId: input?.request_id, error: { code: 'ERR_INPUT', message: String(msg) } });
+        return { content: [{ type: 'text', text: `Error: ${msg}` }] };
       }
       const kind = String(input?.kind || 'resources').toLowerCase();
       if (kind === 'accounts') {
@@ -578,6 +613,7 @@ export function registerTools(server: ToolServer) {
           const hint = mapAdsErrorMsg(res.status, res.errorText || '');
           const lines = [`Error listing accounts (status ${res.status}): ${res.errorText || ''}`];
           if (hint) lines.push(`Hint: ${hint}`);
+          logEvent('list_resources', startTs, { sessionKey, requestId: input?.request_id, error: { code: `HTTP_${res.status}`, message: String(res.errorText || '') } });
           return { content: [{ type: 'text', text: lines.join('\n') }] };
         }
         const names = res.data?.resourceNames || [];
@@ -591,7 +627,9 @@ export function registerTools(server: ToolServer) {
           return { content: [{ type: 'text', text: csv }] };
         }
         const table = tabulate(rows, fields);
-        return { content: [{ type: 'text', text: `Accounts:\n${table}` }] };
+        const out = { content: [{ type: 'text', text: `Accounts:\n${table}` }] };
+        logEvent('list_resources', startTs, { sessionKey, requestId: input?.request_id });
+        return out;
       }
       const limit = Math.max(1, Math.min(1000, Number(input?.limit ?? 500)));
       const filter = (input?.filter || '').trim();
@@ -604,6 +642,7 @@ export function registerTools(server: ToolServer) {
         const hint = mapAdsErrorMsg(res.status, res.errorText || '');
         const lines = [`Error listing resources (status ${res.status}): ${res.errorText || ''}`];
         if (hint) lines.push(`Hint: ${hint}`);
+        logEvent('list_resources', startTs, { sessionKey, requestId: input?.request_id, error: { code: `HTTP_${res.status}`, message: String(res.errorText || '') } });
         return { content: [{ type: 'text', text: lines.join('\n') }] };
       }
       const items = (res.data?.results || []).map((r: any) => ({ name: r.googleAdsField?.name, category: r.googleAdsField?.category, selectable: r.googleAdsField?.selectable }));
@@ -617,7 +656,9 @@ export function registerTools(server: ToolServer) {
         return { content: [{ type: 'text', text: csv }] };
       }
       const table = tabulate(items, fields);
-      return { content: [{ type: 'text', text: `GAQL Resources:\n${table}` }] };
+      const out = { content: [{ type: 'text', text: `GAQL Resources:\n${table}` }] };
+      logEvent('list_resources', startTs, { sessionKey, requestId: input?.request_id });
+      return out;
     }
   );
 
@@ -651,13 +692,18 @@ export function registerTools(server: ToolServer) {
     'Establish a session with Google Ads credentials (multi-tenant mode only).',
     SetSessionCredentialsZ,
     async (input: any) => {
+      const startTs = Date.now();
       if (process.env.ENABLE_RUNTIME_CREDENTIALS !== 'true') {
-        return { content: [{ type: 'text', text: 'Multi-tenant mode not enabled' }] };
+        const out = { content: [{ type: 'text', text: 'Multi-tenant mode not enabled' }] };
+        logEvent('set_session_credentials', startTs, { requestId: input?.request_id, error: { code: 'ERR_NOT_ENABLED', message: 'Multi-tenant mode not enabled' } });
+        return out;
       }
       try {
         validateSessionKey(String(input?.session_key || ''));
       } catch (e: any) {
-        return { content: [{ type: 'text', text: `Error: ${e?.message || String(e)}` }] };
+        const msg = e?.message || String(e);
+        logEvent('set_session_credentials', startTs, { sessionKey: input?.session_key, requestId: input?.request_id, error: { code: 'ERR_INPUT', message: String(msg) } });
+        return { content: [{ type: 'text', text: `Error: ${msg}` }] };
       }
       try {
         const out = establishSession(String(input.session_key), input.google_credentials);
@@ -668,14 +714,20 @@ export function registerTools(server: ToolServer) {
           } catch (e: any) {
             const msg = String(e?.message || e);
             if (msg.startsWith('ERR_INSUFFICIENT_SCOPE')) {
+              logEvent('set_session_credentials', startTs, { sessionKey: input?.session_key, requestId: input?.request_id, error: { code: 'ERR_INSUFFICIENT_SCOPE', message: 'Missing adwords scope' } });
               return { content: [{ type: 'text', text: JSON.stringify({ error: { code: 'ERR_INSUFFICIENT_SCOPE', message: 'Access token lacks required Google Ads scope (adwords). Please re-authenticate with the correct scope.' } }) }] };
             }
+            logEvent('set_session_credentials', startTs, { sessionKey: input?.session_key, requestId: input?.request_id, error: { code: 'ERR_SCOPE_VERIFY_FAILED', message: msg } });
             return { content: [{ type: 'text', text: JSON.stringify({ error: { code: 'ERR_SCOPE_VERIFY_FAILED', message: msg } }) }] };
           }
         }
-        return { content: [{ type: 'text', text: JSON.stringify({ status: 'success', ...out }) }] };
+        const resp = { content: [{ type: 'text', text: JSON.stringify({ status: 'success', ...out }) }] };
+        logEvent('set_session_credentials', startTs, { sessionKey: input?.session_key, requestId: input?.request_id });
+        return resp;
       } catch (e: any) {
-        return { content: [{ type: 'text', text: JSON.stringify({ error: { code: 'ERR_ESTABLISH', message: e?.message || String(e) } }) }] };
+        const msg = e?.message || String(e);
+        logEvent('set_session_credentials', startTs, { sessionKey: input?.session_key, requestId: input?.request_id, error: { code: 'ERR_ESTABLISH', message: String(msg) } });
+        return { content: [{ type: 'text', text: JSON.stringify({ error: { code: 'ERR_ESTABLISH', message: msg } }) }] };
       }
     }
   );
@@ -686,16 +738,23 @@ export function registerTools(server: ToolServer) {
     'Get credential status for a session (multi-tenant mode).',
     GetCredentialStatusZ,
     async (input: any) => {
+      const startTs = Date.now();
       if (process.env.ENABLE_RUNTIME_CREDENTIALS !== 'true') {
-        return { content: [{ type: 'text', text: 'Multi-tenant mode not enabled' }] };
+        const out = { content: [{ type: 'text', text: 'Multi-tenant mode not enabled' }] };
+        logEvent('get_credential_status', startTs, { requestId: input?.request_id, error: { code: 'ERR_NOT_ENABLED', message: 'Multi-tenant mode not enabled' } });
+        return out;
       }
       try {
         validateSessionKey(String(input?.session_key || ''));
       } catch (e: any) {
-        return { content: [{ type: 'text', text: `Error: ${e?.message || String(e)}` }] };
+        const msg = e?.message || String(e);
+        logEvent('get_credential_status', startTs, { sessionKey: input?.session_key, requestId: input?.request_id, error: { code: 'ERR_INPUT', message: String(msg) } });
+        return { content: [{ type: 'text', text: `Error: ${msg}` }] };
       }
       const status = getCredentialStatus(String(input.session_key));
-      return { content: [{ type: 'text', text: JSON.stringify(status) }] };
+      const out = { content: [{ type: 'text', text: JSON.stringify(status) }] };
+      logEvent('get_credential_status', startTs, { sessionKey: input?.session_key, requestId: input?.request_id });
+      return out;
     }
   );
 
@@ -705,16 +764,23 @@ export function registerTools(server: ToolServer) {
     'End a session and clear credentials (multi-tenant mode).',
     EndSessionZ,
     async (input: any) => {
+      const startTs = Date.now();
       if (process.env.ENABLE_RUNTIME_CREDENTIALS !== 'true') {
-        return { content: [{ type: 'text', text: 'Multi-tenant mode not enabled' }] };
+        const out = { content: [{ type: 'text', text: 'Multi-tenant mode not enabled' }] };
+        logEvent('end_session', startTs, { requestId: input?.request_id, error: { code: 'ERR_NOT_ENABLED', message: 'Multi-tenant mode not enabled' } });
+        return out;
       }
       try {
         validateSessionKey(String(input?.session_key || ''));
       } catch (e: any) {
-        return { content: [{ type: 'text', text: `Error: ${e?.message || String(e)}` }] };
+        const msg = e?.message || String(e);
+        logEvent('end_session', startTs, { sessionKey: input?.session_key, requestId: input?.request_id, error: { code: 'ERR_INPUT', message: String(msg) } });
+        return { content: [{ type: 'text', text: `Error: ${msg}` }] };
       }
       endSessionConn(String(input.session_key));
-      return { content: [{ type: 'text', text: JSON.stringify({ status: 'session_ended' }) }] };
+      const out = { content: [{ type: 'text', text: JSON.stringify({ status: 'session_ended' }) }] };
+      logEvent('end_session', startTs, { sessionKey: input?.session_key, requestId: input?.request_id });
+      return out;
     }
   );
 
