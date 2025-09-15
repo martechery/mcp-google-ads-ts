@@ -3,9 +3,14 @@ import { validateSessionKey } from './session-validator.js';
 import { formatCustomerId } from './formatCustomerId.js';
 import { buildAdsHeaders } from '../headers.js';
 import { normalizeApiVersion } from './normalizeApiVersion.js';
+import { emitMcpEvent, nowIso } from './observability.js';
 
 const connections = new Map<string, ConnectionContext>();
 let sweeperInterval: NodeJS.Timeout | null = null;
+let totalSessionCount = 0;
+let refreshCount = 0;
+let refreshFailureCount = 0;
+let lastMetricsEmit = 0;
 
 function isMultiTenantEnabled(): boolean {
   return process.env.ENABLE_RUNTIME_CREDENTIALS === 'true';
@@ -41,6 +46,8 @@ export function establishSession(sessionKey: string, credentials: GoogleCredenti
     ctx.credentials = credentials;
     ctx.lastActivityAt = now;
     ctx.allowedCustomerIds = allowedIds;
+    // best-effort log
+    try { emitMcpEvent({ timestamp: nowIso(), tool: 'session_established', session_key: sessionKey, response_time_ms: 0, overwritten: true }); } catch (e) { void e; }
   } else {
     connections.set(sessionKey, {
       session_key: sessionKey,
@@ -49,6 +56,8 @@ export function establishSession(sessionKey: string, credentials: GoogleCredenti
       lastActivityAt: now,
       allowedCustomerIds: allowedIds,
     });
+    totalSessionCount++;
+    try { emitMcpEvent({ timestamp: nowIso(), tool: 'session_established', session_key: sessionKey, response_time_ms: 0, overwritten: false }); } catch (e) { void e; }
   }
   startConnectionSweeper();
 
@@ -67,6 +76,7 @@ export function touchConnection(sessionKey: string): void {
 
 export function endSession(sessionKey: string): void {
   connections.delete(sessionKey);
+  try { emitMcpEvent({ timestamp: nowIso(), tool: 'session_ended', session_key: sessionKey, response_time_ms: 0, reason: 'explicit' }); } catch (e) { void e; }
 }
 
 export function startConnectionSweeper(): void {
@@ -74,9 +84,12 @@ export function startConnectionSweeper(): void {
   sweeperInterval = setInterval(() => {
     const now = Date.now();
     const ttlMs = parseInt(process.env.RUNTIME_CREDENTIAL_TTL || '3600', 10) * 1000;
+    let removed = 0;
     for (const [key, ctx] of connections.entries()) {
       if (now - ctx.lastActivityAt > ttlMs) {
         connections.delete(key);
+        removed++;
+        try { emitMcpEvent({ timestamp: nowIso(), tool: 'session_ended', session_key: key, response_time_ms: 0, reason: 'ttl' }); } catch (e) { void e; }
       }
     }
 
@@ -84,7 +97,20 @@ export function startConnectionSweeper(): void {
     if (connections.size > max) {
       const sorted = Array.from(connections.entries()).sort((a, b) => a[1].lastActivityAt - b[1].lastActivityAt);
       for (let i = 0; i < sorted.length - max; i++) {
-        connections.delete(sorted[i][0]);
+        const key = sorted[i][0];
+        connections.delete(key);
+        removed++;
+        try { emitMcpEvent({ timestamp: nowIso(), tool: 'session_ended', session_key: key, response_time_ms: 0, reason: 'lru' }); } catch (e) { void e; }
+      }
+    }
+    if (removed > 0) { try { emitMcpEvent({ timestamp: nowIso(), tool: 'session_sweep', response_time_ms: 0, removed_count: removed }); } catch (e) { void e; } }
+
+    if ((process.env.EMIT_SESSION_METRICS || 'true').toLowerCase() !== 'false') {
+      const interval = parseInt(process.env.METRICS_INTERVAL || '60000', 10);
+      if (now - lastMetricsEmit > interval) {
+        lastMetricsEmit = now;
+        const m = getSessionMetrics();
+        try { emitMcpEvent({ timestamp: nowIso(), tool: 'metrics_snapshot', response_time_ms: 0, active_sessions: m.active_sessions, total_established: m.total_established, total_refreshes: m.total_refreshes, refresh_failures: m.refresh_failures, avg_session_age_ms: m.avg_session_age_ms, oldest_session_age_ms: m.oldest_session_age_ms }); } catch (e) { void e; }
       }
     }
   }, parseInt(process.env.CONNECTION_SWEEP_INTERVAL || '300', 10) * 1000);
@@ -154,6 +180,8 @@ export async function refreshAccessTokenForSession(sessionKey: string): Promise<
     .then((updated) => {
       ctx.credentials = updated;
       ctx.refreshPromise = undefined;
+      refreshCount++;
+      try { emitMcpEvent({ timestamp: nowIso(), tool: 'token_refresh', session_key: sessionKey, response_time_ms: 0 }); } catch (e) { void e; }
       return updated;
     })
     .catch((err) => {
@@ -161,11 +189,36 @@ export async function refreshAccessTokenForSession(sessionKey: string): Promise<
       // Purge on invalid_grant per security model
       if (String(err?.message || '').includes('invalid_grant')) {
         connections.delete(sessionKey);
+        try { emitMcpEvent({ timestamp: nowIso(), tool: 'session_ended', session_key: sessionKey, response_time_ms: 0, reason: 'invalid_grant' }); } catch (e) { void e; }
       }
+      refreshFailureCount++;
+      try { emitMcpEvent({ timestamp: nowIso(), tool: 'token_refresh', session_key: sessionKey, response_time_ms: 0, error: { code: 'ERR_REFRESH_FAILED', message: String(err?.message || err) } }); } catch (e) { void e; }
       throw err;
     });
 
   return ctx.refreshPromise;
+}
+
+export function getSessionMetrics(): { active_sessions: number; total_established: number; total_refreshes: number; refresh_failures: number; avg_session_age_ms: number; oldest_session_age_ms: number } {
+  const now = Date.now();
+  let totalAge = 0;
+  let oldest = 0;
+  let count = 0;
+  for (const ctx of connections.values()) {
+    const age = now - (ctx.establishedAt || now);
+    totalAge += age;
+    oldest = Math.max(oldest, age);
+    count++;
+  }
+  const avg = count > 0 ? Math.round(totalAge / count) : 0;
+  return {
+    active_sessions: connections.size,
+    total_established: totalSessionCount,
+    total_refreshes: refreshCount,
+    refresh_failures: refreshFailureCount,
+    avg_session_age_ms: avg,
+    oldest_session_age_ms: oldest,
+  };
 }
 
 function shouldVerifyScope(): boolean {
