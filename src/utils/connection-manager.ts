@@ -11,7 +11,7 @@ function isMultiTenantEnabled(): boolean {
   return process.env.ENABLE_RUNTIME_CREDENTIALS === 'true';
 }
 
-export function establishSession(sessionKey: string, credentials: GoogleCredential): { session_key: string; expires_in: number } {
+export function establishSession(sessionKey: string, credentials: GoogleCredential): { session_key: string; expires_in: number; overwritten?: boolean } {
   if (!isMultiTenantEnabled()) {
     throw new Error('Multi-tenant mode not enabled');
   }
@@ -31,17 +31,29 @@ export function establishSession(sessionKey: string, credentials: GoogleCredenti
     : undefined;
 
   const now = Date.now();
-  connections.set(sessionKey, {
-    session_key: sessionKey,
-    credentials,
-    establishedAt: now,
-    lastActivityAt: now,
-    allowedCustomerIds: allowedIds,
-  });
+  const existed = connections.has(sessionKey);
+  if (existed) {
+    if (process.env.STRICT_IMMUTABLE_AUTH === 'true') {
+      throw new Error('ERR_IMMUTABLE_AUTH: Authentication cannot be modified for this session');
+    }
+    // Non-strict: allow overwrite (for recovery) and log via caller
+    const ctx = connections.get(sessionKey)!;
+    ctx.credentials = credentials;
+    ctx.lastActivityAt = now;
+    ctx.allowedCustomerIds = allowedIds;
+  } else {
+    connections.set(sessionKey, {
+      session_key: sessionKey,
+      credentials,
+      establishedAt: now,
+      lastActivityAt: now,
+      allowedCustomerIds: allowedIds,
+    });
+  }
   startConnectionSweeper();
 
   const ttlSec = parseInt(process.env.RUNTIME_CREDENTIAL_TTL || '3600', 10);
-  return { session_key: sessionKey, expires_in: ttlSec };
+  return { session_key: sessionKey, expires_in: ttlSec, overwritten: existed };
 }
 
 export function getConnection(sessionKey: string): ConnectionContext | undefined {

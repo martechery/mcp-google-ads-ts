@@ -1021,7 +1021,5 @@ Validated
 - Integration tests: passing (live suite)
 
 Remaining / Next
-- Observability: structured JSON events (stderr) with `session_key`, `tool`, `customer_id`, `request_id`, timings, and error codes
-- Optional `STRICT_IMMUTABLE_AUTH` enforcement: hard-block re-setting credentials for an existing session
 - Additional hardening/perf: load testing with sticky sessions; micro-optimizations
 - Optional: richer error payloads across all tools (consistent codes in every response)

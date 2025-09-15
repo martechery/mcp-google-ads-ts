@@ -58,8 +58,11 @@ export function registerTools(server: ToolServer) {
     "Manage Google Ads auth: status; switch/refresh via gcloud; set_project/set_quota_project; optional oauth_login using env client id/secret to create ADC file.",
     ManageAuthZ,
     async (input: any) => {
+      const startTs = Date.now();
       if (process.env.ENABLE_RUNTIME_CREDENTIALS === 'true') {
-        return { content: [{ type: 'text', text: 'Authentication cannot be modified in multi-tenant mode (manage_auth disabled).' }] };
+        const out = { content: [{ type: 'text', text: 'Authentication cannot be modified in multi-tenant mode (manage_auth disabled).' }] };
+        logEvent('manage_auth', startTs, { requestId: input?.request_id, error: { code: 'DISABLED_MULTI_TENANT', message: 'manage_auth disabled in multi-tenant mode' } });
+        return out;
       }
       const action = (input?.action || 'status').toLowerCase();
       // Default: execute subprocess actions unless explicitly disabled
@@ -188,7 +191,9 @@ export function registerTools(server: ToolServer) {
         } catch {
           // ignore discovery errors
         }
-        return { content: [{ type: 'text', text: lines.join('\n') }] };
+        const out = { content: [{ type: 'text', text: lines.join('\n') }] };
+        logEvent('manage_auth', startTs, { requestId: input?.request_id });
+        return out;
       }
 
       if (action === 'oauth_login') {
@@ -201,7 +206,9 @@ export function registerTools(server: ToolServer) {
             'Set both env vars to a Desktop app OAuth client and retry.',
             'Preferred path remains: gcloud auth application-default login with Ads scope.',
           ];
-          return { content: [{ type: 'text', text: lines.join('\n') }] };
+          const out = { content: [{ type: 'text', text: lines.join('\n') }] };
+          logEvent('manage_auth', startTs, { requestId: input?.request_id, error: { code: 'OAUTH_CLIENT_MISSING', message: 'Missing client id/secret' } });
+          return out;
         }
         try {
           const mod = await import('./tools/oauth.js');
@@ -225,13 +232,17 @@ export function registerTools(server: ToolServer) {
               lines.push(`Ads scope check after oauth_login: HTTP ${resp.status}`);
             }
           } catch { /* ignore */ }
-          return { content: [{ type: 'text', text: lines.join('\n') }] };
+          const resp = { content: [{ type: 'text', text: lines.join('\n') }] };
+          logEvent('manage_auth', startTs, { requestId: input?.request_id });
+          return resp;
         } catch (e: any) {
           const lines = [
             'OAuth device flow failed.',
             `Error: ${e?.message || String(e)}`,
           ];
-          return { content: [{ type: 'text', text: lines.join('\n') }] };
+          const resp = { content: [{ type: 'text', text: lines.join('\n') }] };
+          logEvent('manage_auth', startTs, { requestId: input?.request_id, error: { code: 'OAUTH_DEVICE_FAILED', message: String(e?.message || e) } });
+          return resp;
         }
       }
 
@@ -247,7 +258,9 @@ export function registerTools(server: ToolServer) {
             `Command: ${cmd}`,
             'Tip: Re-run with allow_subprocess=true (default) to execute from MCP, or set allow_subprocess=false to only print steps.',
           ].join('\n');
-          return { content: [{ type: 'text', text }] };
+          const out = { content: [{ type: 'text', text }] };
+          logEvent('manage_auth', startTs, { requestId: input?.request_id });
+          return out;
         }
         if (!(await isGcloudAvailable())) {
           const text = [
@@ -255,7 +268,9 @@ export function registerTools(server: ToolServer) {
             `Please run manually: ${cmd}`,
             'Install: https://cloud.google.com/sdk/docs/install',
           ].join('\n');
-          return { content: [{ type: 'text', text }] };
+          const out = { content: [{ type: 'text', text }] };
+          logEvent('manage_auth', startTs, { requestId: input?.request_id, error: { code: 'GCLOUD_NOT_FOUND', message: 'gcloud not on PATH' } });
+          return out;
         }
         const { code, stdout, stderr } = await execCmd('gcloud', ['config', 'configurations', 'activate', name]);
         const lines = [
@@ -265,7 +280,9 @@ export function registerTools(server: ToolServer) {
           'Next: refresh ADC credentials to ensure Ads scope:',
           '  gcloud auth application-default login --scopes=https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/adwords',
         ].filter(Boolean);
-        return { content: [{ type: 'text', text: lines.join('\n') }] };
+        const out = { content: [{ type: 'text', text: lines.join('\n') }] };
+        logEvent('manage_auth', startTs, { requestId: input?.request_id });
+        return out;
       }
 
       if (action === 'set_project') {
@@ -278,7 +295,9 @@ export function registerTools(server: ToolServer) {
             'Planned action: set default gcloud project',
             `Command: ${cmd}`,
           ].join('\n');
-          return { content: [{ type: 'text', text }] };
+          const out = { content: [{ type: 'text', text }] };
+          logEvent('manage_auth', startTs, { requestId: input?.request_id });
+          return out;
         }
         const { code, stdout, stderr } = await execCmd('gcloud', ['config', 'set', 'project', projectId]);
         const text = [
@@ -286,7 +305,9 @@ export function registerTools(server: ToolServer) {
           stdout ? `stdout:\n${stdout}` : '',
           stderr ? `stderr:\n${stderr}` : '',
         ].filter(Boolean).join('\n');
-        return { content: [{ type: 'text', text }] };
+        const out = { content: [{ type: 'text', text }] };
+        logEvent('manage_auth', startTs, { requestId: input?.request_id });
+        return out;
       }
 
       if (action === 'set_quota_project') {
@@ -299,7 +320,9 @@ export function registerTools(server: ToolServer) {
             'Planned action: set ADC quota project',
             `Command: ${cmd}`,
           ].join('\n');
-          return { content: [{ type: 'text', text }] };
+        const out = { content: [{ type: 'text', text }] };
+        logEvent('manage_auth', startTs, { requestId: input?.request_id });
+        return out;
         }
         const { code, stdout, stderr } = await execCmd('gcloud', ['auth', 'application-default', 'set-quota-project', projectId]);
         const text = [
@@ -307,7 +330,9 @@ export function registerTools(server: ToolServer) {
           stdout ? `stdout:\n${stdout}` : '',
           stderr ? `stderr:\n${stderr}` : '',
         ].filter(Boolean).join('\n');
-        return { content: [{ type: 'text', text }] };
+        const out = { content: [{ type: 'text', text }] };
+        logEvent('manage_auth', startTs, { requestId: input?.request_id });
+        return out;
       }
 
       if (action === 'refresh') {
@@ -318,7 +343,9 @@ export function registerTools(server: ToolServer) {
             `Command: ${loginCmd}`,
             'Tip: Re-run with allow_subprocess=true (default) to execute from MCP, or set allow_subprocess=false to only print steps.',
           ].join('\n');
-          return { content: [{ type: 'text', text }] };
+          const out = { content: [{ type: 'text', text }] };
+          logEvent('manage_auth', startTs, { requestId: input?.request_id });
+          return out;
         }
         if (!(await isGcloudAvailable())) {
           const text = [
@@ -326,7 +353,9 @@ export function registerTools(server: ToolServer) {
             `Please run manually: ${loginCmd}`,
             'Install: https://cloud.google.com/sdk/docs/install',
           ].join('\n');
-          return { content: [{ type: 'text', text }] };
+          const out = { content: [{ type: 'text', text }] };
+          logEvent('manage_auth', startTs, { requestId: input?.request_id, error: { code: 'GCLOUD_NOT_FOUND', message: 'gcloud not on PATH' } });
+          return out;
         }
         const step1 = await execCmd('gcloud', ['auth', 'application-default', 'login', '--scopes=https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/adwords']);
         // Verify by printing a token (will also surface scope issues)
@@ -351,10 +380,14 @@ export function registerTools(server: ToolServer) {
         if (step1.code !== 0) {
           lines.push('Install: https://cloud.google.com/sdk/docs/install');
         }
-        return { content: [{ type: 'text', text: lines.join('\n') }] };
+        const out = { content: [{ type: 'text', text: lines.join('\n') }] };
+        logEvent('manage_auth', startTs, { requestId: input?.request_id });
+        return out;
       }
 
-      return { content: [{ type: 'text', text: `Unknown action '${action}'. Use status | switch | refresh.` }] };
+      const out = { content: [{ type: 'text', text: `Unknown action '${action}'. Use status | switch | refresh.` }] };
+      logEvent('manage_auth', startTs, { requestId: input?.request_id, error: { code: 'ERR_UNKNOWN_ACTION', message: String(action) } });
+      return out;
     }
   );
 
@@ -669,18 +702,23 @@ export function registerTools(server: ToolServer) {
     "Get GAQL help with local documentation and official Google Ads API links. Use topic for specific areas or search for keywords.",
     GaqlHelpZ,
     async (input: any) => {
+      const startTs = Date.now();
       try {
         const text = await gaqlHelp({
           topic: input?.topic,
           search: input?.search,
         });
-        return { content: [{ type: 'text', text }] };
+        const out = { content: [{ type: 'text', text }] };
+        logEvent('gaql_help', startTs, { requestId: input?.request_id });
+        return out;
       } catch (e: any) {
         const lines = [
           `Error fetching GAQL help: ${e?.message || String(e)}`,
           'Hint: set quick_tips=true to avoid network usage.',
         ];
-        return { content: [{ type: 'text', text: lines.join('\n') }] };
+        const out = { content: [{ type: 'text', text: lines.join('\n') }] };
+        logEvent('gaql_help', startTs, { requestId: input?.request_id, error: { code: 'ERR_HELP', message: String(e?.message || e) } });
+        return out;
       }
     }
   );
@@ -726,8 +764,9 @@ export function registerTools(server: ToolServer) {
         return resp;
       } catch (e: any) {
         const msg = e?.message || String(e);
-        logEvent('set_session_credentials', startTs, { sessionKey: input?.session_key, requestId: input?.request_id, error: { code: 'ERR_ESTABLISH', message: String(msg) } });
-        return { content: [{ type: 'text', text: JSON.stringify({ error: { code: 'ERR_ESTABLISH', message: msg } }) }] };
+        const code = msg.startsWith('ERR_IMMUTABLE_AUTH') ? 'ERR_IMMUTABLE_AUTH' : 'ERR_ESTABLISH';
+        logEvent('set_session_credentials', startTs, { sessionKey: input?.session_key, requestId: input?.request_id, error: { code, message: String(msg) } });
+        return { content: [{ type: 'text', text: JSON.stringify({ error: { code, message: msg } }) }] };
       }
     }
   );

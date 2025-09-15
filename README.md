@@ -275,6 +275,8 @@ Enable via environment:
 - `GOOGLE_OAUTH_CLIENT_ID` / `GOOGLE_OAUTH_CLIENT_SECRET` Optional, for refresh flows
 - `HTTPS_PROXY` Optional proxy for outbound requests
 - `NODE_TLS_REJECT_UNAUTHORIZED` For proxy/cert handling when required
+- `STRICT_IMMUTABLE_AUTH` Optional. When `true`, blocks re-setting credentials for an existing session (default allows overwrite with a warning)
+- `OBSERVABILITY_ENABLED` Optional. Set to `false` to disable structured JSON logs (default enabled). Alternatively set `OBSERVABILITY=off`.
 
 Behavioral differences when enabled:
 - Credentials must be provided via `set_session_credentials`
@@ -337,6 +339,27 @@ Response (invalid grant)
 ```json
 { "error": { "code": "ERR_INVALID_GRANT", "message": "Refresh token invalid or revoked. Re-authentication required." } }
 ```
+
+### Observability
+
+The server emits structured JSON events to stderr (12-factor style) for application-side collection. Each event includes:
+
+```json
+{
+  "timestamp": "2025-01-01T00:00:00.000Z",
+  "tool": "execute_gaql_query",
+  "session_key": "...",                // when available
+  "customer_id": "1234567890",         // when available
+  "request_id": "abc-123",             // pass-through from input when provided
+  "response_time_ms": 12,
+  "api_version": "v21",
+  "error": { "code": "HTTP_403", "message": "..." } // only on errors
+}
+```
+
+Control via env:
+- `OBSERVABILITY_ENABLED=false` (disable)
+- `OBSERVABILITY=off` (disable)
 
 ## Available Tools
 
