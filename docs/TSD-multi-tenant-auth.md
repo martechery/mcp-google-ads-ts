@@ -1023,3 +1023,12 @@ Validated
 Remaining / Next
 - Additional hardening/perf: load testing with sticky sessions; micro-optimizations
 - Optional: richer error payloads across all tools (consistent codes in every response)
+ - Optional: live multi-tenant integration tests (gated):
+   - Gating: `VITEST_REAL=1` and `ENABLE_RUNTIME_CREDENTIALS=true`
+   - Env inputs: `TEST_ACCESS_TOKEN`, `TEST_REFRESH_TOKEN`, `TEST_DEVELOPER_TOKEN`, `TEST_LOGIN_CUSTOMER_ID`, `TEST_QUOTA_PROJECT_ID`
+   - Validate: session establish, GAQL/performance calls with session_key, token refresh, scope verification, and allowlist enforcement
+
+Performance ideas
+- Connection pool/session metrics emitted via observability
+- Per-session request rate limiting (e.g., token bucket)
+- Circuit breaker for repeated token refresh failures (fast-fail window)

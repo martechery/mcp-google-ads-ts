@@ -321,6 +321,39 @@ Using standard tools in multi-tenant mode: include `session_key` in inputs. Exam
 }
 ```
 
+Client usage examples
+
+- Establish session, then execute a GAQL query and get performance with `session_key`:
+
+```json
+{ "tool": "set_session_credentials", "input": {
+  "session_key": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+  "google_credentials": {
+    "access_token": "ya29...",
+    "refresh_token": "1//...",
+    "developer_token": "DEV_TOKEN",
+    "login_customer_id": "1234567890",
+    "quota_project_id": "my-project"
+  }
+}}
+
+{ "tool": "execute_gaql_query", "input": {
+  "session_key": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+  "request_id": "req-abc-123",
+  "customer_id": "1234567890",
+  "query": "SELECT campaign.id, campaign.name FROM campaign LIMIT 5"
+}}
+
+{ "tool": "get_performance", "input": {
+  "session_key": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+  "request_id": "req-abc-456",
+  "customer_id": "1234567890",
+  "level": "campaign",
+  "days": 7,
+  "limit": 10
+}}
+```
+
 4) `refresh_access_token`
 
 When a `refresh_token` is provided and OAuth client env is set, this tool refreshes the access token for the session.
@@ -360,6 +393,33 @@ The server emits structured JSON events to stderr (12-factor style) for applicat
 Control via env:
 - `OBSERVABILITY_ENABLED=false` (disable)
 - `OBSERVABILITY=off` (disable)
+
+### Error Payloads
+
+All tools return structured error payloads when failures occur:
+
+```json
+{ "error": { "code": "ERR_NO_SESSION_KEY", "message": "session_key parameter required in multi-tenant mode" } }
+```
+
+Common codes include: `ERR_INPUT`, `ERR_NOT_ENABLED`, `ERR_IMMUTABLE_AUTH`, `ERR_INVALID_GRANT`, `ERR_INSUFFICIENT_SCOPE`, and `HTTP_<status>` for API responses.
+
+### Live Multi-Tenant Integration Test (optional)
+
+You can run a live multi-tenant test flow using environment-provided credentials. Recommended gating:
+
+- Set `VITEST_REAL=1` and `ENABLE_RUNTIME_CREDENTIALS=true`
+- Provide runtime test credentials via env (examples):
+  - `TEST_ACCESS_TOKEN`, `TEST_REFRESH_TOKEN`, `TEST_DEVELOPER_TOKEN`
+  - `TEST_LOGIN_CUSTOMER_ID`, `TEST_QUOTA_PROJECT_ID`
+- Steps:
+  1) Call `set_session_credentials` with test env values
+  2) Run `execute_gaql_query` and `get_performance` with `session_key`
+  3) Optionally call `refresh_access_token` to validate token refresh
+  4) Optionally set `VERIFY_TOKEN_SCOPE=true` to validate scope against live API
+  5) Optionally pass `ALLOWED_CUSTOMER_IDS` to validate allowlist enforcement
+
+Keep the existing single-tenant live tests as primary validation; multi-tenant live tests are optional and depend on environment-provided credentials.
 
 ## Available Tools
 
