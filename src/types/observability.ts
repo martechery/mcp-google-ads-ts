@@ -21,4 +21,5 @@ export interface MCPEvent {
   refresh_failures?: number;
   avg_session_age_ms?: number;
   oldest_session_age_ms?: number;
+  rate_limit_hits?: number;
 }

@@ -11,7 +11,7 @@ describe('multi-tenant metrics and lifecycle events', () => {
   const writes: string[] = [];
   beforeEach(() => {
     vi.useFakeTimers();
-    process.env = { ...OLD_ENV, ENABLE_RUNTIME_CREDENTIALS: 'true', EMIT_SESSION_METRICS: 'true', METRICS_INTERVAL: '50', CONNECTION_SWEEP_INTERVAL: '1', RUNTIME_CREDENTIAL_TTL: '1' };
+    process.env = { ...OLD_ENV, ENABLE_RUNTIME_CREDENTIALS: 'true', EMIT_SESSION_METRICS: 'true', METRICS_INTERVAL: '50', CONNECTION_SWEEP_INTERVAL: '1', RUNTIME_CREDENTIAL_TTL: '1', ENABLE_RATE_LIMITING: 'true', REQUESTS_PER_SECOND: '1', RATE_LIMIT_BURST: '1' };
     process.stderr.write = (chunk: any) => { writes.push(String(chunk)); return true; };
     writes.length = 0;
   });
@@ -30,9 +30,14 @@ describe('multi-tenant metrics and lifecycle events', () => {
     // established
     expect(writes.some((l) => l.includes('"tool":"session_established"'))).toBe(true);
 
+    // Trigger a rate limit hit
+    await server.tools['execute_gaql_query']({ session_key: key, customer_id: '1234567890', query: 'SELECT 1' });
+    await server.tools['execute_gaql_query']({ session_key: key, customer_id: '1234567890', query: 'SELECT 1' });
+
     // metrics snapshot fires on sweeper tick; advance past 1s to trigger, and METRICS_INTERVAL is 50ms
     await vi.advanceTimersByTimeAsync(1200);
     expect(writes.some((l) => l.includes('"tool":"metrics_snapshot"'))).toBe(true);
+    expect(writes.some((l) => l.includes('"rate_limit_hits"'))).toBe(true);
 
     // let TTL pass and sweeper run
     await vi.advanceTimersByTimeAsync(1500);

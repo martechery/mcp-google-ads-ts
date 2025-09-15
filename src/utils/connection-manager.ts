@@ -11,6 +11,7 @@ let sweeperInterval: NodeJS.Timeout | null = null;
 let totalSessionCount = 0;
 let refreshCount = 0;
 let refreshFailureCount = 0;
+let rateLimitHits = 0;
 let lastMetricsEmit = 0;
 
 function isMultiTenantEnabled(): boolean {
@@ -123,7 +124,7 @@ export function startConnectionSweeper(): void {
       if (now - lastMetricsEmit > interval) {
         lastMetricsEmit = now;
         const m = getSessionMetrics();
-        try { emitMcpEvent({ timestamp: nowIso(), tool: 'metrics_snapshot', response_time_ms: 0, active_sessions: m.active_sessions, total_established: m.total_established, total_refreshes: m.total_refreshes, refresh_failures: m.refresh_failures, avg_session_age_ms: m.avg_session_age_ms, oldest_session_age_ms: m.oldest_session_age_ms }); } catch (e) { void e; }
+        try { emitMcpEvent({ timestamp: nowIso(), tool: 'metrics_snapshot', response_time_ms: 0, active_sessions: m.active_sessions, total_established: m.total_established, total_refreshes: m.total_refreshes, refresh_failures: m.refresh_failures, avg_session_age_ms: m.avg_session_age_ms, oldest_session_age_ms: m.oldest_session_age_ms, /**/ rate_limit_hits: m.rate_limit_hits }); } catch (e) { void e; }
       }
     }
   }, parseInt(process.env.CONNECTION_SWEEP_INTERVAL || '300', 10) * 1000);
@@ -212,7 +213,7 @@ export async function refreshAccessTokenForSession(sessionKey: string): Promise<
   return ctx.refreshPromise;
 }
 
-export function getSessionMetrics(): { active_sessions: number; total_established: number; total_refreshes: number; refresh_failures: number; avg_session_age_ms: number; oldest_session_age_ms: number } {
+export function getSessionMetrics(): { active_sessions: number; total_established: number; total_refreshes: number; refresh_failures: number; avg_session_age_ms: number; oldest_session_age_ms: number; rate_limit_hits: number } {
   const now = Date.now();
   let totalAge = 0;
   let oldest = 0;
@@ -231,6 +232,7 @@ export function getSessionMetrics(): { active_sessions: number; total_establishe
     refresh_failures: refreshFailureCount,
     avg_session_age_ms: avg,
     oldest_session_age_ms: oldest,
+    rate_limit_hits: rateLimitHits,
   };
 }
 
@@ -241,6 +243,7 @@ export function checkRateLimit(sessionKey: string): { allowed: boolean; retryAft
   if (!ctx || !ctx.rateLimiter) return { allowed: true };
   if (ctx.rateLimiter.consume()) return { allowed: true };
   const ra = ctx.rateLimiter.getRetryAfter();
+  rateLimitHits++;
   return { allowed: false, retryAfter: ra };
 }
 
