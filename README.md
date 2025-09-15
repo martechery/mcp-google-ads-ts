@@ -421,6 +421,20 @@ You can run a live multi-tenant test flow using environment-provided credentials
 
 Keep the existing single-tenant live tests as primary validation; multi-tenant live tests are optional and depend on environment-provided credentials.
 
+### Per-Session Rate Limiting (Optional)
+
+Token-bucket rate limiting protects quotas on a per-session basis when multi-tenant mode is enabled.
+
+- Env (defaults in parentheses):
+  - `ENABLE_RATE_LIMITING` (true)
+  - `REQUESTS_PER_SECOND` (10)
+  - `RATE_LIMIT_BURST` (20)
+- Error payload on limit:
+```json
+{ "error": { "code": "ERR_RATE_LIMITED", "message": "Rate limit exceeded. Retry after 1 seconds", "retry_after": 1 } }
+```
+Rate limiting is enforced only in multi-tenant mode and only for session-bound tools.
+
 ## Available Tools
 
 ### 1. `manage_auth` - Authentication management

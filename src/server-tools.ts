@@ -10,7 +10,7 @@ import { gaqlHelp } from './tools/gaqlHelp.js';
 import { mapAdsErrorMsg } from './utils/errorMapping.js';
 import { microsToUnits } from './utils/currency.js';
 import { ManageAuthZ, ListResourcesZ, ExecuteGaqlZ, GetPerformanceZ, GaqlHelpZ, SetSessionCredentialsZ, GetCredentialStatusZ, EndSessionZ, RefreshAccessTokenZ } from './schemas.js';
-import { establishSession, endSession as endSessionConn, getCredentialStatus, requireSessionKeyIfEnabled, isCustomerAllowedForSession, refreshAccessTokenForSession, verifyTokenScopeForSession } from './utils/connection-manager.js';
+import { establishSession, endSession as endSessionConn, getCredentialStatus, requireSessionKeyIfEnabled, isCustomerAllowedForSession, refreshAccessTokenForSession, verifyTokenScopeForSession, checkRateLimit } from './utils/connection-manager.js';
 import { emitMcpEvent, nowIso } from './utils/observability.js';
 import { normalizeApiVersion } from './utils/normalizeApiVersion.js';
 import { validateSessionKey } from './utils/session-validator.js';
@@ -408,6 +408,13 @@ export function registerTools(server: ToolServer) {
         logEvent('execute_gaql_query', startTs, { sessionKey, customerId: input?.customer_id, requestId: input?.request_id, error: { code: 'ERR_INPUT', message: String(msg) } });
         return { content: [{ type: 'text', text: `Error: ${msg}` }] };
       }
+      if (sessionKey) {
+        const rc = checkRateLimit(sessionKey);
+        if (!rc.allowed) {
+          logEvent('execute_gaql_query', startTs, { sessionKey, customerId: input?.customer_id, requestId: input?.request_id, error: { code: 'ERR_RATE_LIMITED', message: `Retry after ${rc.retryAfter}s` } });
+          return { content: [{ type: 'text', text: JSON.stringify({ error: { code: 'ERR_RATE_LIMITED', message: `Rate limit exceeded. Retry after ${rc.retryAfter} seconds`, retry_after: rc.retryAfter } }) }] };
+        }
+      }
       if (!input.customer_id) {
         const envAccount = process.env.GOOGLE_ADS_ACCOUNT_ID;
         if (envAccount) {
@@ -517,6 +524,13 @@ export function registerTools(server: ToolServer) {
         const msg = e?.message || String(e);
         logEvent('get_performance', startTs, { sessionKey, customerId: input?.customer_id, requestId: input?.request_id, error: { code: 'ERR_INPUT', message: String(msg) } });
         return { content: [{ type: 'text', text: `Error: ${msg}` }] };
+      }
+      if (sessionKey) {
+        const rc = checkRateLimit(sessionKey);
+        if (!rc.allowed) {
+          logEvent('get_performance', startTs, { sessionKey, customerId: input?.customer_id, requestId: input?.request_id, error: { code: 'ERR_RATE_LIMITED', message: `Retry after ${rc.retryAfter}s` } });
+          return { content: [{ type: 'text', text: JSON.stringify({ error: { code: 'ERR_RATE_LIMITED', message: `Rate limit exceeded. Retry after ${rc.retryAfter} seconds`, retry_after: rc.retryAfter } }) }] };
+        }
       }
       if (!input.customer_id) {
         const envAccount = process.env.GOOGLE_ADS_ACCOUNT_ID;
@@ -638,6 +652,13 @@ export function registerTools(server: ToolServer) {
         const msg = e?.message || String(e);
         logEvent('list_resources', startTs, { sessionKey, requestId: input?.request_id, error: { code: 'ERR_INPUT', message: String(msg) } });
         return { content: [{ type: 'text', text: `Error: ${msg}` }] };
+      }
+      if (sessionKey) {
+        const rc = checkRateLimit(sessionKey);
+        if (!rc.allowed) {
+          logEvent('list_resources', startTs, { sessionKey, requestId: input?.request_id, error: { code: 'ERR_RATE_LIMITED', message: `Retry after ${rc.retryAfter}s` } });
+          return { content: [{ type: 'text', text: JSON.stringify({ error: { code: 'ERR_RATE_LIMITED', message: `Rate limit exceeded. Retry after ${rc.retryAfter} seconds`, retry_after: rc.retryAfter } }) }] };
+        }
       }
       const kind = String(input?.kind || 'resources').toLowerCase();
       if (kind === 'accounts') {

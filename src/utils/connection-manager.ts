@@ -4,6 +4,7 @@ import { formatCustomerId } from './formatCustomerId.js';
 import { buildAdsHeaders } from '../headers.js';
 import { normalizeApiVersion } from './normalizeApiVersion.js';
 import { emitMcpEvent, nowIso } from './observability.js';
+import { TokenBucket } from './rate-limiter.js';
 
 const connections = new Map<string, ConnectionContext>();
 let sweeperInterval: NodeJS.Timeout | null = null;
@@ -14,6 +15,11 @@ let lastMetricsEmit = 0;
 
 function isMultiTenantEnabled(): boolean {
   return process.env.ENABLE_RUNTIME_CREDENTIALS === 'true';
+}
+
+function isRateLimitingEnabled(): boolean {
+  const v = (process.env.ENABLE_RATE_LIMITING || 'true').toLowerCase();
+  return v !== 'false' && v !== '0';
 }
 
 export function establishSession(sessionKey: string, credentials: GoogleCredential): { session_key: string; expires_in: number; overwritten?: boolean } {
@@ -49,12 +55,19 @@ export function establishSession(sessionKey: string, credentials: GoogleCredenti
     // best-effort log
     try { emitMcpEvent({ timestamp: nowIso(), tool: 'session_established', session_key: sessionKey, response_time_ms: 0, overwritten: true }); } catch (e) { void e; }
   } else {
+    const rl = isRateLimitingEnabled()
+      ? new TokenBucket(
+          parseInt(process.env.RATE_LIMIT_BURST || '20', 10),
+          parseFloat(process.env.REQUESTS_PER_SECOND || '10')
+        )
+      : undefined;
     connections.set(sessionKey, {
       session_key: sessionKey,
       credentials,
       establishedAt: now,
       lastActivityAt: now,
       allowedCustomerIds: allowedIds,
+      rateLimiter: rl,
     });
     totalSessionCount++;
     try { emitMcpEvent({ timestamp: nowIso(), tool: 'session_established', session_key: sessionKey, response_time_ms: 0, overwritten: false }); } catch (e) { void e; }
@@ -219,6 +232,16 @@ export function getSessionMetrics(): { active_sessions: number; total_establishe
     avg_session_age_ms: avg,
     oldest_session_age_ms: oldest,
   };
+}
+
+export function checkRateLimit(sessionKey: string): { allowed: boolean; retryAfter?: number } {
+  if (!isMultiTenantEnabled()) return { allowed: true };
+  if (!isRateLimitingEnabled()) return { allowed: true };
+  const ctx = connections.get(sessionKey);
+  if (!ctx || !ctx.rateLimiter) return { allowed: true };
+  if (ctx.rateLimiter.consume()) return { allowed: true };
+  const ra = ctx.rateLimiter.getRetryAfter();
+  return { allowed: false, retryAfter: ra };
 }
 
 function shouldVerifyScope(): boolean {

@@ -7,6 +7,8 @@ export type GoogleCredential = {
   expires_at?: number; // epoch ms
 };
 
+import { TokenBucket } from '../utils/rate-limiter.js';
+
 export type ConnectionContext = {
   session_key: string;
   credentials: GoogleCredential;
@@ -16,4 +18,5 @@ export type ConnectionContext = {
   allowedCustomerIds?: Set<string>;
   scopeVerified?: boolean;
   scopeVerifyPromise?: Promise<void>;
+  rateLimiter?: TokenBucket;
 };
