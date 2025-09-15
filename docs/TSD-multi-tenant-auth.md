@@ -986,3 +986,42 @@ function normalizeCustomerId(id: string | number): string {
 ```
 
 This ensures consistent matching regardless of format variations in customer IDs.
+
+## Status Checklist
+
+Completed (implemented, tested, and pushed)
+- In-memory session store with TTL, LRU sweeper, and UUID v4 validation
+  - Files: `src/utils/connection-manager.ts`, `src/utils/session-validator.ts`, `src/types/connection.ts`
+- Multi-tenant gating: tools require `session_key`; `manage_auth` disabled
+  - Files: `src/server-tools.ts`
+  - Tests: `test/unit/multitenant.gating.test.ts`, `test/unit/multitenant.requireSessionKey.test.ts`
+- Session tools: `set_session_credentials`, `get_credential_status`, `end_session`
+  - Files: `src/server-tools.ts`, `src/schemas.ts`
+  - Tests: `test/unit/multitenant.session.tools.test.ts`
+- Developer token propagation and headers wiring; quota project header support
+  - Files: `src/auth.ts`, `src/headers.ts`, tools under `src/tools/*`
+- Token refresh: `refresh_access_token` tool with single-flight OAuth2Client
+  - Files: `src/utils/connection-manager.ts`, `src/server-tools.ts`, `src/schemas.ts`
+  - Tests: `test/unit/multitenant.refresh.test.ts`
+- Auto-refresh on use when expiring (<5m) in `getAccessToken`
+  - Files: `src/auth.ts`
+- Customer ID allowlist enforcement per session (`ALLOWED_CUSTOMER_IDS`)
+  - Files: `src/utils/connection-manager.ts`, `src/server-tools.ts`
+  - Tests: `test/unit/multitenant.allowlist.test.ts`
+- Optional scope verification (`VERIFY_TOKEN_SCOPE=true`) at session establish
+  - Files: `src/utils/connection-manager.ts`, `src/server-tools.ts`
+  - Tests: `test/unit/multitenant.scopeVerify.test.ts`
+- Documentation updated
+  - README: Multi-Tenant Mode, session tools, refresh tool, VERIFY_TOKEN_SCOPE
+
+Validated
+- Lint: clean
+- Typecheck: clean
+- Unit tests: passing (including new multi-tenant tests)
+- Integration tests: passing (live suite)
+
+Remaining / Next
+- Observability: structured JSON events (stderr) with `session_key`, `tool`, `customer_id`, `request_id`, timings, and error codes
+- Optional `STRICT_IMMUTABLE_AUTH` enforcement: hard-block re-setting credentials for an existing session
+- Additional hardening/perf: load testing with sticky sessions; micro-optimizations
+- Optional: richer error payloads across all tools (consistent codes in every response)

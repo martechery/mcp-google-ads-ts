@@ -319,6 +319,25 @@ Using standard tools in multi-tenant mode: include `session_key` in inputs. Exam
 }
 ```
 
+4) `refresh_access_token`
+
+When a `refresh_token` is provided and OAuth client env is set, this tool refreshes the access token for the session.
+
+Request
+```json
+{ "session_key": "f47ac10b-58cc-4372-a567-0e02b2c3d479" }
+```
+
+Response (success)
+```json
+{ "status": "refreshed", "expires_in": 3600, "masked_token": "ya29****abcd" }
+```
+
+Response (invalid grant)
+```json
+{ "error": { "code": "ERR_INVALID_GRANT", "message": "Refresh token invalid or revoked. Re-authentication required." } }
+```
+
 ## Available Tools
 
 ### 1. `manage_auth` - Authentication management
