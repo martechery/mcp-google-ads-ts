@@ -942,16 +942,24 @@ The MCP emits structured JSON events to stderr for application consumption:
 ```typescript
 interface MCPEvent {
   timestamp: string;
-  session_key: string;        // Full key for traceability
-  tool: string;               // Tool being called
-  customer_id?: string;       // Customer context
-  request_id?: string;        // Correlation ID from application
+  tool: string;                 // Tool or lifecycle event name
+  session_key?: string;         // Full key for traceability
+  customer_id?: string;         // Customer context
+  request_id?: string;          // Correlation ID from application
   response_time_ms: number;
-  error?: {
-    code: string;
-    message: string;
-  };
-  api_version: string;        // Google Ads API version
+  api_version?: string;         // Google Ads API version (tool calls)
+  error?: { code: string; message: string };
+  // Lifecycle additions
+  overwritten?: boolean;        // session_established when overwriting
+  reason?: string;              // session_ended (explicit|ttl|lru|invalid_grant)
+  removed_count?: number;       // session_sweep
+  // Snapshot metrics
+  active_sessions?: number;
+  total_established?: number;
+  total_refreshes?: number;
+  refresh_failures?: number;
+  avg_session_age_ms?: number;
+  oldest_session_age_ms?: number;
 }
 ```
 
@@ -960,7 +968,8 @@ interface MCPEvent {
 - Response time percentiles (p50, p95, p99)
 - Error rates by type
 - Active session count
-- Token refresh rate
+- Token refresh/success/failure rates
+- Lifecycle: session_established/ended/sweep counts
 - Cache hit rates (future)
 
 ### Integration Approach
@@ -1011,24 +1020,27 @@ Completed (implemented, tested, and pushed)
 - Optional scope verification (`VERIFY_TOKEN_SCOPE=true`) at session establish
   - Files: `src/utils/connection-manager.ts`, `src/server-tools.ts`
   - Tests: `test/unit/multitenant.scopeVerify.test.ts`
+- Observability: structured JSON events for tools and lifecycle
+  - Files: `src/utils/observability.ts`, `src/types/observability.ts`, `src/server-tools.ts`, `src/utils/connection-manager.ts`
+  - Events: tool calls, token_refresh, session_established, session_ended (explicit|ttl|lru|invalid_grant), session_sweep, metrics_snapshot
+- Strict immutability toggle (`STRICT_IMMUTABLE_AUTH`) with error mapping
+  - Files: `src/utils/connection-manager.ts`, `src/server-tools.ts`
+  - Tests: `test/unit/multitenant.strictImmutable.test.ts`
+- Per-session rate limiting (token bucket) in multi-tenant mode
+  - Files: `src/utils/rate-limiter.ts`, `src/utils/connection-manager.ts`, `src/server-tools.ts`
+  - Tests: `test/unit/multitenant.rateLimit.test.ts`
 - Documentation updated
   - README: Multi-Tenant Mode, session tools, refresh tool, VERIFY_TOKEN_SCOPE
+  - README: Observability toggles, error payloads; Rate Limiting section and ERR_RATE_LIMITED payload
 
 Validated
 - Lint: clean
 - Typecheck: clean
 - Unit tests: passing (including new multi-tenant tests)
-- Integration tests: passing (live suite)
+- Integration tests: passing (live suite, includes multi-tenant flow)
 
 Remaining / Next
 - Additional hardening/perf: load testing with sticky sessions; micro-optimizations
-- Optional: richer error payloads across all tools (consistent codes in every response)
- - Optional: live multi-tenant integration tests (gated):
-   - Gating: `VITEST_REAL=1` and `ENABLE_RUNTIME_CREDENTIALS=true`
-   - Env inputs: `TEST_ACCESS_TOKEN`, `TEST_REFRESH_TOKEN`, `TEST_DEVELOPER_TOKEN`, `TEST_LOGIN_CUSTOMER_ID`, `TEST_QUOTA_PROJECT_ID`
-   - Validate: session establish, GAQL/performance calls with session_key, token refresh, scope verification, and allowlist enforcement
-
-Performance ideas
-- Connection pool/session metrics emitted via observability
-- Per-session request rate limiting (e.g., token bucket)
+- Optional: richer error payloads across remaining tools (fully uniform)
 - Circuit breaker for repeated token refresh failures (fast-fail window)
+- Additional metrics: rate_limit_hits counter in snapshots
