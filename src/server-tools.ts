@@ -10,7 +10,7 @@ import { gaqlHelp } from './tools/gaqlHelp.js';
 import { mapAdsErrorMsg } from './utils/errorMapping.js';
 import { microsToUnits } from './utils/currency.js';
 import { ManageAuthZ, ListResourcesZ, ExecuteGaqlZ, GetPerformanceZ, GaqlHelpZ, SetSessionCredentialsZ, GetCredentialStatusZ, EndSessionZ, RefreshAccessTokenZ } from './schemas.js';
-import { establishSession, endSession as endSessionConn, getCredentialStatus, requireSessionKeyIfEnabled, isCustomerAllowedForSession, refreshAccessTokenForSession } from './utils/connection-manager.js';
+import { establishSession, endSession as endSessionConn, getCredentialStatus, requireSessionKeyIfEnabled, isCustomerAllowedForSession, refreshAccessTokenForSession, verifyTokenScopeForSession } from './utils/connection-manager.js';
 import { validateSessionKey } from './utils/session-validator.js';
 
 function addTool(server: any, name: string, description: string, zodSchema: any, handler: ToolHandler) {
@@ -661,6 +661,18 @@ export function registerTools(server: ToolServer) {
       }
       try {
         const out = establishSession(String(input.session_key), input.google_credentials);
+        // Optional: verify Ads scope if enabled
+        if (process.env.VERIFY_TOKEN_SCOPE === 'true') {
+          try {
+            await verifyTokenScopeForSession(String(input.session_key));
+          } catch (e: any) {
+            const msg = String(e?.message || e);
+            if (msg.startsWith('ERR_INSUFFICIENT_SCOPE')) {
+              return { content: [{ type: 'text', text: JSON.stringify({ error: { code: 'ERR_INSUFFICIENT_SCOPE', message: 'Access token lacks required Google Ads scope (adwords). Please re-authenticate with the correct scope.' } }) }] };
+            }
+            return { content: [{ type: 'text', text: JSON.stringify({ error: { code: 'ERR_SCOPE_VERIFY_FAILED', message: msg } }) }] };
+          }
+        }
         return { content: [{ type: 'text', text: JSON.stringify({ status: 'success', ...out }) }] };
       } catch (e: any) {
         return { content: [{ type: 'text', text: JSON.stringify({ error: { code: 'ERR_ESTABLISH', message: e?.message || String(e) } }) }] };

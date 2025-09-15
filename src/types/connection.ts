@@ -14,5 +14,6 @@ export type ConnectionContext = {
   lastActivityAt: number;
   refreshPromise?: Promise<GoogleCredential>;
   allowedCustomerIds?: Set<string>;
+  scopeVerified?: boolean;
+  scopeVerifyPromise?: Promise<void>;
 };
-

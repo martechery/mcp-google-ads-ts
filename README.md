@@ -270,6 +270,7 @@ Enable via environment:
 - `RUNTIME_CREDENTIAL_TTL` Session TTL in seconds (default: 3600)
 - `MAX_CONNECTIONS` Maximum in-memory sessions (default: 1000)
 - `CONNECTION_SWEEP_INTERVAL` Cleanup interval in seconds (default: 300)
+- `VERIFY_TOKEN_SCOPE` Optional. When `true`, validates Ads scope at session establishment
 - `ALLOWED_CUSTOMER_IDS` Optional allowlist of customer IDs (comma-separated)
 - `GOOGLE_OAUTH_CLIENT_ID` / `GOOGLE_OAUTH_CLIENT_SECRET` Optional, for refresh flows
 - `HTTPS_PROXY` Optional proxy for outbound requests

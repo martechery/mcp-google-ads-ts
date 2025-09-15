@@ -1,6 +1,8 @@
 import { ConnectionContext, GoogleCredential } from '../types/connection.js';
 import { validateSessionKey } from './session-validator.js';
 import { formatCustomerId } from './formatCustomerId.js';
+import { buildAdsHeaders } from '../headers.js';
+import { normalizeApiVersion } from './normalizeApiVersion.js';
 
 const connections = new Map<string, ConnectionContext>();
 let sweeperInterval: NodeJS.Timeout | null = null;
@@ -152,4 +154,44 @@ export async function refreshAccessTokenForSession(sessionKey: string): Promise<
     });
 
   return ctx.refreshPromise;
+}
+
+function shouldVerifyScope(): boolean {
+  return process.env.VERIFY_TOKEN_SCOPE === 'true';
+}
+
+export async function verifyTokenScopeForSession(sessionKey: string): Promise<void> {
+  const ctx = connections.get(sessionKey);
+  if (!ctx) throw new Error('No session found');
+  if (!shouldVerifyScope()) return;
+  if (ctx.scopeVerified) return;
+  if (ctx.scopeVerifyPromise) return ctx.scopeVerifyPromise;
+
+  const API_VERSION = normalizeApiVersion(process.env.GOOGLE_ADS_API_VERSION);
+  const cred = ctx.credentials;
+  const headers = buildAdsHeaders({
+    accessToken: cred.access_token,
+    developerToken: cred.developer_token,
+    quotaProjectId: cred.quota_project_id,
+  });
+
+  const url = `https://googleads.googleapis.com/${API_VERSION}/customers:listAccessibleCustomers`;
+  ctx.scopeVerifyPromise = fetch(url, { method: 'GET', headers })
+    .then(async (res) => {
+      if (!res.ok) {
+        if (res.status === 403) {
+          throw new Error('ERR_INSUFFICIENT_SCOPE: Access token missing adwords scope');
+        }
+        const t = await res.text();
+        throw new Error(`Scope verification failed: HTTP ${res.status} ${t || ''}`);
+      }
+      ctx.scopeVerified = true;
+      ctx.scopeVerifyPromise = undefined;
+    })
+    .catch((e) => {
+      ctx.scopeVerifyPromise = undefined;
+      throw e;
+    });
+
+  return ctx.scopeVerifyPromise;
 }
